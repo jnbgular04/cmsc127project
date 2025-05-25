@@ -8,7 +8,7 @@ from database import create_connection
 from frames.home import HomePage
 from frames.orgs import AddCommittee, OrgsPage
 from frames.students import AddStudentPage, StudentsPage
-from frames.view_org_members import ManageFeePage, AddMemberPage, ViewMembersPage
+from frames.view_org_members import AddFeePage, AddMemberPage, ViewMembersPage
 
 #for setting up of database
 def setup_database(cursor):
@@ -136,7 +136,7 @@ class MainApp(tk.Tk):
             "AddCommittee": AddCommittee,
             "ViewMembersPage": ViewMembersPage,
             "AddMemberPage" : AddMemberPage,
-            "ManageFeePage" : ManageFeePage
+            "AddFeePage" : AddFeePage
         }
 
         for name, F in pages.items():

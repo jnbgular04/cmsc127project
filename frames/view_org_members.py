@@ -21,7 +21,7 @@ class ViewMembersPage(tk.Frame):
         btn_add_member = tk.Button(self, text="Add Member", command=self.open_add_member_form)
         btn_add_member.pack(pady=5)
 
-        btn_add_fee = tk.Button(self, text="Manage Fees for Selected Member", command=self.open_member_fee)
+        btn_add_fee = tk.Button(self, text="Add Fees for Selected Member", command=self.open_member_fee)
         btn_add_fee.pack(pady=5)
 
         btn_add_comm = tk.Button(self, text="Assign Committee to Selected Member")
@@ -102,13 +102,13 @@ class ViewMembersPage(tk.Frame):
             return
 
         member_data = self.tree.item(selected)['values']
-        manage_fee_page = self.controller.frames["ManageFeePage"]
-        manage_fee_page.set_selected_org(org_name)
-        manage_fee_page.set_selected_member_data(member_data) #sends data to selected_member_page
+        add_fee_page = self.controller.frames["AddFeePage"]
+        add_fee_page.set_selected_org(org_name)
+        add_fee_page.set_selected_member_data(member_data) #sends data to selected_member_page
 
-        self.controller.show_frame("ManageFeePage")
+        self.controller.show_frame("AddFeePage")
 
-class ManageFeePage(tk.Frame):
+class AddFeePage(tk.Frame): #AddMembersPage ito haha rename nalang
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
@@ -118,7 +118,7 @@ class ManageFeePage(tk.Frame):
 
         # Top section using pack()
         tk.Button(self, text="Back", command=lambda: controller.show_frame("ViewMembersPage")).pack(pady=5)
-        tk.Label(self, text="Manage Fee for Member", font=("Arial", 14)).pack(pady=5)
+        tk.Label(self, text="Add Fee for Member", font=("Arial", 14)).pack(pady=5)
         self.label_org = tk.Label(self, textvariable=self.label_text, font=("Arial", 12))
         self.label_org.pack()
         self.member_label = tk.Label(self, text="", font=("Arial", 12))
