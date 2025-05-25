@@ -9,8 +9,14 @@ class ViewMembersPage(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        btn_back = tk.Button(self, text="Back to Org", command=lambda: controller.show_frame("OrgManagePage"))
+        btn_back = tk.Button(self, text="Back to Home", command=lambda: controller.show_frame("HomePage"))
         btn_back.pack(pady=5)
+
+        tk.Label(self, text="Select Organization", font=("Arial", 12)).pack()
+        self.org_var = tk.StringVar()
+        self.org_dropdown = ttk.Combobox(self, textvariable=self.org_var, state="readonly")
+        self.org_dropdown.pack(pady=5)
+        self.org_dropdown.bind("<<ComboboxSelected>>", self.on_org_selected)
 
         btn_add_member = tk.Button(self, text="Add Member", command=self.open_add_member_form)
         btn_add_member.pack(pady=5)
@@ -35,13 +41,23 @@ class ViewMembersPage(tk.Frame):
             self.tree.column(col, width=120, anchor="center")
         self.tree.pack(fill="both", expand=True, padx=10, pady=10)
 
-        btn_refresh = tk.Button(self, text="Refresh Page", command=lambda: self.load_members(self.org_name))
-        btn_refresh.pack(pady=5)
+        self.load_organizations()
 
+    def load_organizations(self):
+        try:
+            cursor = self.controller.mydb.cursor()
+            cursor.execute("SELECT org_name FROM organization")
+            orgs = [row[0] for row in cursor.fetchall()]
+            self.org_dropdown['values'] = orgs
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load organizations.\n{e}")
 
+    def on_org_selected(self,event):
+        org_name = self.org_var.get()
+        self.label_title.config(text=f"'{org_name}'")
+        self.load_members(org_name)
 
     def load_members(self, org_name):
-        self.org_name = org_name
         for row in self.tree.get_children():
             self.tree.delete(row)
 
@@ -61,7 +77,7 @@ class ViewMembersPage(tk.Frame):
             messagebox.showerror("Database Error", str(e))
 
     def open_add_member_form(self):
-        org_name = self.org_name
+        org_name = self.org_var.get()
         if not org_name:
             messagebox.showwarning("Select Organization", "Please select an organization first.")
             return
@@ -70,7 +86,7 @@ class ViewMembersPage(tk.Frame):
         add_member_page = self.controller.frames["AddMemberPage"]
 
         # Set the selected organization in the AddMemberPage
-        add_member_page.load_organization(org_name)
+        add_member_page.selected_org.set(org_name)
 
         # Load student list
         add_member_page.load_students()
@@ -79,7 +95,7 @@ class ViewMembersPage(tk.Frame):
         self.controller.show_frame("AddMemberPage")
 
     def open_member_fee(self):
-        org_name = self.org_name
+        org_name = self.org_var.get() 
         selected = self.tree.focus()
         if not selected:
             messagebox.showwarning("Select Member", "Please select a member from the list.")
@@ -256,7 +272,7 @@ class AddMemberPage(tk.Frame):
         self.semester_dropdown.pack(pady=5)
 
         self.entry_acad_year = tk.StringVar()
-        tk.Label(self, text="Acad Year Joined (Batch)", font=("Arial", 12)).pack(pady=10)
+        tk.Label(self, text="Acad Year ", font=("Arial", 12)).pack(pady=10)
         self.entry_acad_year = tk.Entry(self, textvariable=self.entry_acad_year)
         self.entry_acad_year.pack(pady=5)
 
@@ -293,16 +309,12 @@ class AddMemberPage(tk.Frame):
             self.student_mapping = {f"{s[0]} - {s[1]} {s[2]}": s[0] for s in students}
         except Exception as e:
             messagebox.showerror("Error", str(e))
-    
-    def load_organization(self, org_name):
-        self.selected_org.set(org_name)  # update label and store org name
 
     def add_member_to_org(self):
         student_label = self.student_var.get()
         student_no = self.student_mapping.get(student_label)
         org_name = self.selected_org.get()
         semester = self.semester_var.get()
-        print(org_name)
 
         if not student_no:
             messagebox.showwarning("Selection Error", "Please select a student.")
@@ -320,7 +332,7 @@ class AddMemberPage(tk.Frame):
 
             cursor.execute("""
                 UPDATE student SET is_member = TRUE WHERE student_no = %s
-            """, (student_no,))
+            """, (student_no))
             self.controller.mydb.commit()
 
             messagebox.showinfo("Success", f"{student_label} added to {org_name}")

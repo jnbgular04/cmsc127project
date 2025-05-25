@@ -6,8 +6,9 @@ from tkinter import ttk
 
 from database import create_connection
 from frames.home import HomePage
-from frames.orgs import AddCommittee, OrgsPage
+from frames.org_manage import AddCommittee, OrgManagePage
 from frames.students import AddStudentPage, StudentsPage
+from frames.view_all_orgs import OrgsPage
 from frames.view_org_members import AddFeePage, AddMemberPage, ViewMembersPage
 
 #for setting up of database
@@ -102,6 +103,38 @@ def setup_database(cursor):
     cursor.execute(create_table_membership)
     cursor.execute(create_comm_assignment)
 
+    #add starting dml statements
+    cursor.execute(""" INSERT INTO student (student_no, first_name, middle_name, last_name, sex, degree_program)
+        VALUES ('2023-12345', 'Vince', 'Gabriel', 'Aquino', 'Male', 'BS Computer Science'),
+        ('2023-67890', 'Jazmine', NULL, 'Gular', 'Female', 'BS Computer Science'),
+        ('2022-12345', 'Ariane', NULL, 'Hernaez', 'Female', 'BS Statistics');
+    """)
+
+    cursor.execute(""" INSERT INTO organization 
+        VALUES ('Mathematical Society'), 
+            ('Alliance of Biology Majors'), 
+            ('Performing Arts Incorporated');
+    """)
+
+    cursor.execute(""" INSERT INTO organization_event 
+        VALUES ('Performing Arts Incorporated','Legally Blonde the Musical');
+    """)
+
+    cursor.execute("""INSERT INTO committee
+        VALUES ('Mathematical Society', 'Executive'),
+        ('Mathematical Society', 'Finance'),
+        ('Performing Arts Incorporated', 'Finance'),
+        ('Performing Arts Incorporated', 'Publications');""")
+    
+    cursor.execute("""INSERT INTO membership 
+        VALUES ('2023-67890','Performing Arts Incorporated',2023,'1st','2023-2024','active');
+        """)
+
+
+    mydb.commit()
+
+
+
 #for checking if database exists already
 def database_exists(cursor, db_name):
     cursor.execute("SHOW DATABASES")
@@ -136,7 +169,8 @@ class MainApp(tk.Tk):
             "AddCommittee": AddCommittee,
             "ViewMembersPage": ViewMembersPage,
             "AddMemberPage" : AddMemberPage,
-            "AddFeePage" : AddFeePage
+            "AddFeePage" : AddFeePage,
+            "OrgManagePage" : OrgManagePage
         }
 
         for name, F in pages.items():
@@ -155,6 +189,8 @@ class MainApp(tk.Tk):
 mydb = create_connection();
 cursor = mydb.cursor()
 
+cursor.execute("")
+
 db_name = "project"
 if database_exists(cursor, db_name):
     print(f"Database '{db_name}' exists.")
@@ -162,6 +198,8 @@ else:
     setup_database(cursor)
 
 cursor.execute("USE project")
+
+
 
 if __name__ == "__main__":
     app = MainApp(mydb)
