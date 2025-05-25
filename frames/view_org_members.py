@@ -1,6 +1,7 @@
+import random
+import re
 import tkinter as tk
 from tkinter import ttk, messagebox
-import uuid
 from tkcalendar import DateEntry 
 
 class ViewMembersPage(tk.Frame):
@@ -145,22 +146,21 @@ class ManageFeePage(tk.Frame):
         self.fee_type.set("Membership")
 
         self.acad_year_issued = tk.StringVar()
-        tk.Label(form_frame, text="Acad Year Issued:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        tk.Label(form_frame, text="Acad Year Issued:").grid(row=2, column=0, sticky=tk.W, pady=5)
         self.acad_year_issued =tk.Entry(form_frame)
-        self.acad_year_issued.grid(row=0, column=1, pady=5)
+        self.acad_year_issued.grid(row=2, column=1, pady=5)
 
         # Due Date (required)
-        tk.Label(form_frame, text="Due Date (required):").grid(row=2, column=0, sticky=tk.W, pady=5)
+        tk.Label(form_frame, text="Due Date (required):").grid(row=3, column=0, sticky=tk.W, pady=5)
         self.due_date_entry = DateEntry(form_frame, date_pattern='yyyy-mm-dd')
-        self.due_date_entry.grid(row=2, column=1, pady=5)
+        self.due_date_entry.grid(row=3, column=1, pady=5)
 
         # Date Paid (optional)
-        tk.Label(form_frame, text="Date Paid (optional):").grid(row=3, column=0, sticky=tk.W, pady=5)
+        tk.Label(form_frame, text="Date Paid (optional):").grid(row=4, column=0, sticky=tk.W, pady=5)
         self.date_paid_entry = DateEntry(form_frame, date_pattern='yyyy-mm-dd')
-        self.date_paid_entry.grid(row=3, column=1, pady=5)
+        self.date_paid_entry.grid(row=4, column=1, pady=5)
         self.date_paid_entry.delete(0, tk.END)
 
-       
         tk.Button(self, text="Submit Fee", command=self.submit_fee).pack(pady=10)
 
     def set_selected_member_data(self, member_data):
@@ -175,49 +175,67 @@ class ManageFeePage(tk.Frame):
         self.label_text.set(f"Fee for {org_name}")
         print("DEBUG: org_name received in set_selected_org:", org_name)
     
-    def submit_fee(self): ## not yet finished!!
+    def submit_fee(self):
         student_no = self.selected_member[0]
-        print(student_no)
         due_date = self.due_date_entry.get_date()
         paid_date = self.date_paid_entry.get_date() if self.date_paid_entry.get() else None
-        
-        print(f"Due Date: {due_date}")
-        print(f"Date Paid: {paid_date}")
-
-        student_no = self.selected_member[0]
-        amount = self.amount_entry.get()
-        acad_year=self.acad_year_issued.get()
+        balance = self.amount_entry.get()
+        acad_year = self.acad_year_issued.get()
         org_name = self.selected_org.get()
-        ref_no = f"REF-{uuid.uuid4().hex[:10].upper()}"
-        print(org_name)
-        print(ref_no)  
-        print(acad_year)  
+        fee_type = self.fee_type.get()
+        ref_no = random.randint(100000, 999999) 
 
-        ##TODO : Implement checker for acad year
-
-        if not amount:
+        # Validation checks
+        if not balance:
             messagebox.showerror("Missing Info", "Please enter an amount.")
             return
 
         try:
-            amount_float = float(amount)
+            balance_float = float(balance)
         except ValueError:
             messagebox.showerror("Invalid Amount", "Please enter a valid number.")
+            return
+
+        # Academic year format validation (YYYY-YYYY)
+        if not re.match(r'^\d{4}-\d{4}$', acad_year):
+            messagebox.showerror("Invalid Format", "Academic year must be in YYYY-YYYY format.")
             return
 
         try:
             cursor = self.controller.mydb.cursor()
             
+            # Corrected INSERT statement with proper column order
             cursor.execute("""
-                INSERT INTO fee (org_name, reference_no, balance, semester_issued, acad_year_issued, type, due_date, student_no)
-                VALUES (%s, %s)
-            """, (org_name, amount_float)) ##FIX HERE (ALREADY HAVE ALL VALUES FROM ABOVE, JUST ARRANGE SORRY SUMASAKIT NA ULO)
+                INSERT INTO fee (
+                    org_name, 
+                    reference_no, 
+                    balance, 
+                    semester_issued, 
+                    acad_year_issued, 
+                    type, 
+                    due_date, 
+                    date_paid, 
+                    student_no
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                org_name, 
+                ref_no, 
+                balance_float,
+                '1st',  # You need to specify semester (1st/2nd) - add dropdown if needed
+                acad_year,
+                fee_type,
+                due_date,
+                paid_date,  # Can be NULL
+                student_no
+            ))
+            
             self.controller.mydb.commit()
-            messagebox.showinfo("Success", f"Fee of {amount_float} added to {student_no}.")
+            messagebox.showinfo("Success", f"Fee of {balance_float} added to {student_no}.")
             self.amount_entry.delete(0, tk.END)
+            self.acad_year_issued.delete(0, tk.END)
+            
         except Exception as e:
             messagebox.showerror("Database Error", str(e))
-
 
 
 class AddMemberPage(tk.Frame):
