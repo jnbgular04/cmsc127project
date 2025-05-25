@@ -37,8 +37,12 @@ class OrgsPage(tk.Frame):
         btn_add = tk.Button(entry_frame, text="Add Organization", command=self.add_organization)
         btn_add.pack(side=tk.LEFT, padx=5)
 
-        btn_delete = tk.Button(left_frame, text="Delete Selected Org", command=self.delete_org)
+        btn_delete = tk.Button(left_frame, text="Delete Selected Organization", command=self.delete_org)
         btn_delete.pack()
+
+        # btn_view_members = tk.Button(left_frame, text="View Selected Organization's Members", command=self.view_members)
+        # btn_view_members.pack(pady=5)
+
 
          # Define Treeview columns
         columns = ("Organization Name",)
@@ -60,7 +64,6 @@ class OrgsPage(tk.Frame):
         # for padding
         tk.Label(right_frame, text="", height=10).pack() 
         
-
         btn_add_comm = tk.Button(right_frame, text="Add Committee", command=lambda: controller.show_frame(AddCommittee))
         btn_add_comm.pack(pady=5)
 
@@ -149,6 +152,40 @@ class OrgsPage(tk.Frame):
                 self.committee_listbox.insert(tk.END, "No committees found for this organization.")
         except mariadb.Error as err:
             messagebox.showerror("Database Error", str(err))
+
+    # def view_members(self):
+    #     selected_item = self.tree.selection()
+    #     if not selected_item:
+    #         messagebox.showwarning("Input Error", "Please select an organization.")
+    #         return
+
+    #     org_name = self.tree.item(selected_item)["values"][0]
+
+    #     try:
+    #         cursor = self.controller.mydb.cursor()
+    #         cursor.execute("""
+    #             SELECT s.student_no, s.first_name, s.last_name, m.acad_year, m.semester, m.status
+    #             FROM membership m
+    #             JOIN student s ON m.student_no = s.student_no
+    #             WHERE m.org_name = %s
+    #         """, (org_name,))
+    #         results = cursor.fetchall()
+
+    #         members_window = tk.Toplevel(self)
+    #         members_window.title(f"Members of {org_name}")
+
+    #         cols = ("Student No", "First Name", "Last Name", "Academic Year", "Semester", "Status")
+    #         tree = ttk.Treeview(members_window, columns=cols, show="headings")
+    #         for col in cols:
+    #             tree.heading(col, text=col)
+    #             tree.column(col, width=100)
+    #         tree.pack(fill="both", expand=True)
+
+    #         for row in results:
+    #             tree.insert("", "end", values=row)
+
+    #     except mariadb.Error as err:
+    #         messagebox.showerror("Database Error", str(err))
 
 class AddCommittee(tk.Frame):
     def __init__(self, parent, controller):

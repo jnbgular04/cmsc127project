@@ -1,8 +1,4 @@
-import getpass
-import mysql.connector as mariadb
 import tkinter as tk
-from tkinter import messagebox
-from tkinter import ttk
 class HomePage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -18,4 +14,8 @@ class HomePage(tk.Frame):
         
         btn_students = tk.Button(self, text="Students Page",
                                command=lambda: controller.show_frame("StudentsPage"))
+        btn_students.pack()
+
+        btn_students = tk.Button(self, text="View Members",
+                               command=lambda: controller.show_frame("ViewMembersPage"))
         btn_students.pack()
