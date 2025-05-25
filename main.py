@@ -8,7 +8,7 @@ from database import create_connection
 from frames.home import HomePage
 from frames.orgs import AddCommittee, OrgsPage
 from frames.students import AddStudentPage, StudentsPage
-from frames.view_org_members import AddMemberPage, ViewMembersPage
+from frames.view_org_members import ManageFeePage, AddMemberPage, ViewMembersPage
 
 #for setting up of database
 def setup_database(cursor):
@@ -127,7 +127,7 @@ class MainApp(tk.Tk):
         # Dictionary of frames
         self.frames = {}
 
-         # Create mapping of page names to classes
+        #Think of routing in cmsc 100
         pages = {
             "HomePage": HomePage,
             "OrgsPage": OrgsPage,
@@ -135,7 +135,8 @@ class MainApp(tk.Tk):
             "AddStudentPage": AddStudentPage,
             "AddCommittee": AddCommittee,
             "ViewMembersPage": ViewMembersPage,
-            "AddMemberPage" : AddMemberPage
+            "AddMemberPage" : AddMemberPage,
+            "ManageFeePage" : ManageFeePage
         }
 
         for name, F in pages.items():

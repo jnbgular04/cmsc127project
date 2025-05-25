@@ -23,7 +23,10 @@ class StudentsPage(tk.Frame):
         btn_add_student.pack(pady=5)
 
         btn_delete = tk.Button(self, text="Delete Selected Student", command=self.delete_student)
-        btn_delete.pack()
+        btn_delete.pack(pady=5)
+
+        btn_update_student = tk.Button(self, text="Update Selected Student")
+        btn_update_student.pack(pady=5)
 
         columns = (
             "student_no",
@@ -78,7 +81,7 @@ class StudentsPage(tk.Frame):
     def delete_student(self):
         selected_item = self.tree.selection()
         if not selected_item:
-            messagebox.showwarning("Selection Error", "Please select an organization to delete.")
+            messagebox.showwarning("Selection Error", "Please select a student to delete.")
             return
         
         selected_student = self.tree.item(selected_item)["values"][0]
