@@ -1,9 +1,11 @@
 import mysql.connector as mariadb
+import getpass
 
 def create_connection():
     #MAIN PROGRAM
     # password = input("Password for root user: ")
-    password = "JazminMaria@2004"
+    password = getpass.getpass("Password for root user: ")
+
 
     return mariadb.connect(
         host="localhost",

@@ -19,7 +19,7 @@ class OrgsPage(tk.Frame):
 
         # BACK TO HOME BUTTON
         btn_back = tk.Button(self, text="Back to Home", 
-                           command=lambda: controller.show_frame("HomePage"))
+                           command=lambda: controller.show_frame("AdminHomePage"))
         btn_back.pack()
 
         label = tk.Label(left_frame, text="All Organizations", font=("Arial", 16))

@@ -5,7 +5,12 @@ from tkinter import messagebox
 from tkinter import ttk
 
 from database import create_connection
-from frames.home import HomePage
+from frames.landing_page import LandingPage
+from frames.home import AdminHomePage
+from frames.home import OrgAdminHomePage
+from frames.home import StudentHomePage
+from frames.login import OrgAdminLogin
+from frames.login import StudentLogin
 from frames.org_manage import AddCommittee, OrgManagePage
 from frames.students import AddStudentPage, StudentsPage
 from frames.view_all_orgs import OrgsPage
@@ -146,7 +151,7 @@ class MainApp(tk.Tk):
     def __init__(self,mydb):
         super().__init__()
         self.title("Multi-page App")
-        self.geometry("1800x600")
+        self.geometry("1280x720")
 
         #store connection
         self.mydb = mydb
@@ -162,7 +167,12 @@ class MainApp(tk.Tk):
 
         #Think of routing in cmsc 100
         pages = {
-            "HomePage": HomePage,
+            "LandingPage" : LandingPage,
+            "AdminHomePage": AdminHomePage,
+            "OrgAdminHomePage" : OrgAdminHomePage,
+            "StudentHomePage": StudentHomePage,
+            "OrgAdminLogin" : OrgAdminLogin,
+            "StudentLogin" : StudentLogin,
             "OrgsPage": OrgsPage,
             "StudentsPage": StudentsPage,
             "AddStudentPage": AddStudentPage,
@@ -178,7 +188,9 @@ class MainApp(tk.Tk):
             self.frames[name] = frame
             frame.grid(row=0, column=0, sticky="nsew")
         
-        self.show_frame("HomePage")
+        self.show_frame("LandingPage")
+
+        self.from_org_admin = False
 
     def show_frame(self, page_name):
         frame = self.frames[page_name]
@@ -186,7 +198,7 @@ class MainApp(tk.Tk):
 
 
 # Connect and setup database/tables
-mydb = create_connection();
+mydb = create_connection()
 cursor = mydb.cursor()
 
 cursor.execute("")

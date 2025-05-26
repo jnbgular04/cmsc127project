@@ -9,7 +9,7 @@ class StudentsPage(tk.Frame):
         self.controller = controller
 
         # BACK TO HOME BUTTON
-        btn_back = tk.Button(self, text="Back to Home", command=lambda: controller.show_frame("HomePage"))
+        btn_back = tk.Button(self, text="Back to Home", command=lambda: controller.show_frame("AdminHomePage"))
         btn_back.pack()
 
         label = tk.Label(self, text="All Currently Enrolled Students", font=("Arial", 16))

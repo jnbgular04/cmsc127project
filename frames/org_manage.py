@@ -15,19 +15,18 @@ class OrgManagePage(tk.Frame):
         main_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         btn_view_members = tk.Button(main_frame, text="View Members", 
-                         command=self.load_members)
+                             command=self.load_members)
         btn_view_members.pack()
         
-        # BACK TO HOME BUTTON
-        btn_back = tk.Button(main_frame, text="Back to Home", 
-                           command=lambda: controller.show_frame("HomePage"))
-        btn_back.pack()
+        # BACK TO HOME BUTTON - MODIFIED
+        self.btn_back = tk.Button(main_frame, text="Back to Home", command=self.go_back)
+        self.btn_back.pack()
 
         btn_add_comm = tk.Button(main_frame, text="Add Committee",
-                                command=self.go_to_add_committee)
+                                 command=self.go_to_add_committee)
         btn_add_comm.pack(pady=5)
 
-         # Optional: Keep the button if you want manual refresh capability
+        # Optional: Keep the button if you want manual refresh capability
         btn_view_committees = tk.Button(main_frame, text="Refresh Committees", command=self.view_committees)
         btn_view_committees.pack(pady=5)
 
@@ -35,6 +34,13 @@ class OrgManagePage(tk.Frame):
         self.committee_listbox = tk.Listbox(main_frame, height=15, width=40)
         self.committee_listbox.pack(pady=5)
 
+    def go_back(self):
+        if hasattr(self.controller, 'from_org_admin') and self.controller.from_org_admin:
+            self.controller.show_frame("OrgAdminHomePage")
+            # Reset the flag after use to prevent incorrect routing from other pages
+            self.controller.from_org_admin = False 
+        else:
+            self.controller.show_frame("AdminHomePage")
 
     def load_organization(self, org_name):
         self.org_name = org_name   
@@ -51,7 +57,7 @@ class OrgManagePage(tk.Frame):
         self.controller.show_frame("ViewMembersPage")
 
     def go_to_add_committee(self):
-        org_name = self.org_name  # however you track the current org
+        org_name = self.org_name   # however you track the current org
         add_comm_page = self.controller.frames["AddCommittee"]
         add_comm_page.load_organization(org_name)
         self.controller.show_frame("AddCommittee")
@@ -99,8 +105,15 @@ class AddCommittee(tk.Frame):
         btn_add_comm.grid(row=2, column=0, columnspan=2, pady=10)
 
         # Back button
-        btn_back = tk.Button(self, text="Back to Orgs Page", command=lambda: controller.show_frame("OrgManagePage"))
+        btn_back = tk.Button(self, text="Back to Orgs Page", command=self.go_back_from_add_committee)
         btn_back.pack(pady=5)
+
+    def go_back_from_add_committee(self):
+        org_manage_page = self.controller.frames["OrgManagePage"]
+        # Ensure the OrgManagePage is loaded with the correct organization again
+        # This is important if OrgManagePage relies on self.org_name when it is raised.
+        org_manage_page.load_organization(self.org_name) 
+        self.controller.show_frame("OrgManagePage")
 
     def load_organization(self, org_name):
         self.org_name = org_name   
