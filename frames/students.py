@@ -8,26 +8,16 @@ class StudentsPage(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        # BACK TO HOME BUTTON
-        btn_back = tk.Button(self, text="Back to Home", command=lambda: controller.show_frame("AdminHomePage"))
-        btn_back.pack()
+        self.show_with_orgs_var = tk.BooleanVar(value=False)
 
-        label = tk.Label(self, text="All Currently Enrolled Students", font=("Arial", 16))
-        label.pack(pady=10)
 
-        # Entry + Button to add new org
-        entry_frame = tk.Frame(self)
-        entry_frame.pack(pady=5)
 
-        btn_add_student = tk.Button(self, text="Add New Student", command=lambda: controller.show_frame("AddStudentPage"))
-        btn_add_student.pack(pady=5)
+        # Back Button
+        tk.Button(self, text="Back to Home", command=lambda: controller.show_frame("AdminHomePage")).pack(pady=5)
 
-        btn_delete = tk.Button(self, text="Delete Selected Student", command=self.delete_student)
-        btn_delete.pack(pady=5)
+        tk.Label(self, text="Student Records", font=("Arial", 16)).pack(pady=10)
 
-        btn_update_student = tk.Button(self, text="Update Selected Student")
-        btn_update_student.pack(pady=5)
-
+        # Treeview
         columns = (
             "student_no",
             "first_name",
@@ -39,153 +29,244 @@ class StudentsPage(tk.Frame):
             "is_member"
         )
 
-        self.tree = ttk.Treeview(self, columns=columns, show="headings")
-
+        self.tree = ttk.Treeview(self, columns=columns, show="headings", selectmode="browse")
         for col in columns:
-            heading_text = col.replace("_", " ").title()
-            self.tree.heading(col, text=heading_text)
-            self.tree.column(col, width=200, anchor="center")
-
+            self.tree.heading(col, text=col.replace("_", " ").title())
+            self.tree.column(col, width=150, anchor="center")
         self.tree.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Refresh Button
-        btn_refresh = tk.Button(self, text="Refresh", command=self.load_students)
-        btn_refresh.pack(pady=5)
+        # Buttons
+        
+        btn_frame = tk.Frame(self)
+        btn_frame.pack(pady=10)
+        
+        chk_with_orgs = tk.Checkbutton(
+            btn_frame, text="Only show students with orgs", variable=self.show_with_orgs_var,
+            command=self.load_students
+        )
+        chk_with_orgs.pack(side=tk.LEFT, padx=5)
+        
+        tk.Button(btn_frame, text="View Details", command=self.view_student_details).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="Refresh", command=self.load_students).pack(side=tk.LEFT, padx=5)
+
+        # Optional: Add/Delete/Update buttons for debugging/admin control
+        # You may comment these out if Global Admin is not allowed to do this
+        tk.Button(btn_frame, text="Add New Student", command=lambda: controller.show_frame("AddStudentPage")).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="Delete Selected Student", command=self.delete_student).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="Update Selected Student", command=self.update_student_popup).pack(side=tk.LEFT, padx=5)
 
         self.load_students()
 
     def load_students(self):
-        # Clear the existing data in Treeview
-        for row in self.tree.get_children():
-            self.tree.delete(row)
+        self.tree.delete(*self.tree.get_children())
 
         try:
             cursor = self.controller.mydb.cursor()
-            cursor.execute("""
-                SELECT student_no, first_name, middle_name, last_name, sex, degree_program, date_graduated, is_member
-                FROM student
-                WHERE date_graduated IS NULL
-            """)
-            results = cursor.fetchall()
 
-            for row in results:
-                # Convert boolean 'is_member' to string for display if needed
-                row_display = list(row)
-                # Optional: format is_member boolean to Yes/No string
-                row_display[-1] = "Yes" if row[-1] else "No"
-                self.tree.insert("", "end", values=row_display)
+            if self.show_with_orgs_var.get():
+                cursor.execute("""
+                    SELECT student_no, first_name, middle_name, last_name, sex,
+                        degree_program, date_graduated, is_member
+                    FROM student
+                    WHERE is_member = TRUE
+                """)
+            else:
+                cursor.execute("""
+                    SELECT student_no, first_name, middle_name, last_name, sex,
+                        degree_program, date_graduated, is_member
+                    FROM student
+                """)
+
+            for row in cursor.fetchall():
+                row = list(row)
+                row[-1] = "Yes" if row[-1] else "No"
+                self.tree.insert("", "end", values=row)
 
         except mariadb.Error as err:
-            print(f"HERE ERROR Error: {err}")
-    
-    def delete_student(self):
-        selected_item = self.tree.selection()
-        if not selected_item:
-            messagebox.showwarning("Selection Error", "Please select a student to delete.")
-            return
-        
-        selected_student = self.tree.item(selected_item)["values"][0]
-        print(selected_student)
+            messagebox.showerror("Database Error", str(err))
 
-        confirm = messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete student with student number '{selected_student}'?")
+
+
+    def view_student_details(self):
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("Select Student", "Please select a student to view.")
+            return
+
+        data = self.tree.item(selected[0])['values']
+        student_no = data[0]
+
+        popup = tk.Toplevel(self)
+        popup.title(f"Student Details: {student_no}")
+        popup.geometry("800x600")
+        popup.grab_set()
+
+        # ----- BASIC INFO -----
+        info_frame = tk.LabelFrame(popup, text="Basic Info", padx=10, pady=10)
+        info_frame.pack(fill="x", padx=10, pady=10)
+
+        labels = [
+            "Student No", "First Name", "Middle Name", "Last Name",
+            "Sex", "Degree Program", "Date Graduated", "Is Member"
+        ]
+        for i, label in enumerate(labels):
+            tk.Label(info_frame, text=label + ":", anchor="w", width=20).grid(row=i, column=0, sticky="w")
+            tk.Label(info_frame, text=data[i]).grid(row=i, column=1, sticky="w")
+
+        # ----- MEMBERSHIPS -----
+        self.create_tree_section(popup, "Organization Memberships",
+            columns=["Org", "Status", "Year Joined", "Semester", "AY"],
+            query="""
+                SELECT org_name, status, year_joined, semester, acad_year
+                FROM membership
+                WHERE student_no = %s
+                ORDER BY acad_year DESC, semester DESC
+            """,
+            param=(student_no,)
+        )
+
+        # ----- COMMITTEES -----
+        self.create_tree_section(popup, "Committee Roles",
+            columns=["Org", "Committee", "Role", "Semester", "AY"],
+            query="""
+                SELECT org_name, comm_name, role, semester, acad_year
+                FROM committee_assignment
+                WHERE student_no = %s
+                ORDER BY acad_year DESC, semester DESC
+            """,
+            param=(student_no,)
+        )
+
+        # ----- FEES -----
+        self.create_tree_section(popup, "Fee Records",
+            columns=["Org", "Ref No", "Type", "Balance", "Due Date", "Date Paid"],
+            query="""
+                SELECT org_name, reference_no, type, balance, due_date, date_paid
+                FROM fee
+                WHERE student_no = %s
+                ORDER BY acad_year_issued DESC, semester_issued DESC
+            """,
+            param=(student_no,)
+        )
+
+        # Close button
+        tk.Button(popup, text="Close", command=popup.destroy).pack(pady=10)
+
+
+    def delete_student(self):
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("Selection Error", "Select a student to delete.")
+            return
+
+        student_no = self.tree.item(selected[0])["values"][0]
+        confirm = messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete student '{student_no}'?")
         if not confirm:
             return
 
         try:
             cursor = self.controller.mydb.cursor()
-            cursor.execute("DELETE FROM student WHERE student_no = %s", (selected_student,))
+            cursor.execute("DELETE FROM student WHERE student_no = %s", (student_no,))
             self.controller.mydb.commit()
-            messagebox.showinfo("Deleted", f"Student with Student no. '{selected_student}' deleted successfully.")
             self.load_students()
+            messagebox.showinfo("Deleted", f"Student {student_no} deleted.")
         except mariadb.Error as err:
             messagebox.showerror("Database Error", str(err))
 
-class AddStudentPage(tk.Frame):
-    def __init__(self, parent, controller):
-        super().__init__(parent)
-        self.controller = controller
+    def update_student_popup(self):
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("Select Student", "Please select a student to update.")
+            return
 
-        tk.Label(self, text="Add New Student", font=("Arial", 16)).pack(pady=10)
+        original_data = self.tree.item(selected[0])['values']
+        student_no = original_data[0]
 
-        form_frame = tk.Frame(self)
-        form_frame.pack(pady=10)
+        popup = tk.Toplevel(self)
+        popup.title(f"Update Student: {student_no}")
+        popup.geometry("400x500")
+        popup.grab_set()
 
-        # Student fields
-        labels = [
-            "Student No", "First Name", "Middle Name", "Last Name", 
-            "Sex (Male/Female)", "Degree Program", "Date Graduated (YYYY-MM-DD or empty)", "Is Member (Yes/No)"
+        fields = [
+            "First Name", "Middle Name", "Last Name", "Sex (Male/Female)",
+            "Degree Program", "Date Graduated (YYYY-MM-DD or empty)", "Is Member (Yes/No)"
         ]
-        self.entries = {}
 
-        for i, label_text in enumerate(labels):
-            tk.Label(form_frame, text=label_text).grid(row=i, column=0, sticky="e", pady=2)
-            entry = tk.Entry(form_frame)
-            entry.grid(row=i, column=1, pady=2)
-            self.entries[label_text] = entry
+        entry_vars = {}
+        for i, field in enumerate(fields):
+            tk.Label(popup, text=field + ":").grid(row=i, column=0, sticky="e", padx=5, pady=5)
+            var = tk.StringVar()
+            entry = tk.Entry(popup, textvariable=var)
+            entry.grid(row=i, column=1, padx=5, pady=5)
+            entry_vars[field] = var
 
-        # Buttons
-        btn_frame = tk.Frame(self)
-        btn_frame.pack(pady=10)
+        # Pre-fill values (original_data = [student_no, first_name, middle_name, last_name, sex, program, grad_date, is_member])
+        entry_vars["First Name"].set(original_data[1])
+        entry_vars["Middle Name"].set(original_data[2])
+        entry_vars["Last Name"].set(original_data[3])
+        entry_vars["Sex (Male/Female)"].set(original_data[4])
+        entry_vars["Degree Program"].set(original_data[5])
+        entry_vars["Date Graduated (YYYY-MM-DD or empty)"].set(original_data[6] or "")
+        entry_vars["Is Member (Yes/No)"].set(original_data[7])
 
-        tk.Button(btn_frame, text="Add Student", command=self.add_student).pack(side=tk.LEFT, padx=5)
-        tk.Button(btn_frame, text="Back to Students", command=lambda: controller.show_frame("StudentsPage")).pack(side=tk.LEFT)
+        def save_update():
+            data = {k: v.get().strip() for k, v in entry_vars.items()}
 
-    def add_student(self):
-        # Collect data from entries
-        data = {}
-        for key, entry in self.entries.items():
-            data[key] = entry.get().strip()
+            if data["Sex (Male/Female)"] not in ("Male", "Female"):
+                messagebox.showerror("Invalid Input", "Sex must be 'Male' or 'Female'.")
+                return
 
-        # Validation examples
-        if not data["Student No"]:
-            tk.messagebox.showwarning("Input Error", "Student No is required.")
-            return
-        if not data["First Name"]:
-            tk.messagebox.showwarning("Input Error", "First Name is required.")
-            return
-        if not data["Last Name"]:
-            tk.messagebox.showwarning("Input Error", "Last Name is required.")
-            return
-        if data["Sex (Male/Female)"] not in ("Male", "Female"):
-            tk.messagebox.showwarning("Input Error", "Sex must be 'Male' or 'Female'.")
-            return
-        if not data["Degree Program"]:
-            tk.messagebox.showwarning("Input Error", "Degree Program is required.")
-            return
+            is_member_str = data["Is Member (Yes/No)"].lower()
+            if is_member_str == "yes":
+                is_member = True
+            elif is_member_str == "no":
+                is_member = False
+            else:
+                messagebox.showerror("Invalid Input", "Is Member must be 'Yes' or 'No'.")
+                return
 
-        # Process optional fields
-        date_graduated = data["Date Graduated (YYYY-MM-DD or empty)"] or None
-        is_member_str = data["Is Member (Yes/No)"].lower()
-        if is_member_str == "yes":
-            is_member = True
-        elif is_member_str == "no":
-            is_member = False
-        else:
-            tk.messagebox.showwarning("Input Error", "Is Member must be 'Yes' or 'No'.")
-            return
+            try:
+                cursor = self.controller.mydb.cursor()
+                cursor.execute("""
+                    UPDATE student
+                    SET first_name = %s, middle_name = %s, last_name = %s,
+                        sex = %s, degree_program = %s, date_graduated = %s, is_member = %s
+                    WHERE student_no = %s
+                """, (
+                    data["First Name"],
+                    data["Middle Name"] or None,
+                    data["Last Name"],
+                    data["Sex (Male/Female)"],
+                    data["Degree Program"],
+                    data["Date Graduated (YYYY-MM-DD or empty)"] or None,
+                    is_member,
+                    student_no
+                ))
+                self.controller.mydb.commit()
+                messagebox.showinfo("Updated", f"Student '{student_no}' updated successfully.")
+                popup.destroy()
+                self.load_students()
+            except mariadb.Error as err:
+                messagebox.showerror("Database Error", str(err))
 
-        # Insert into DB
+        tk.Button(popup, text="Save", command=save_update).grid(row=len(fields), column=0, columnspan=2, pady=15)
+
+    def create_tree_section(self, parent, title, columns, query, param):
+        frame = tk.LabelFrame(parent, text=title, padx=10, pady=5)
+        frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        tree = ttk.Treeview(frame, columns=columns, show="headings", height=6)
+        for col in columns:
+            tree.heading(col, text=col)
+            tree.column(col, anchor="center", width=120)
+        tree.pack(fill="both", expand=True)
+
         try:
             cursor = self.controller.mydb.cursor()
-            insert_sql = """
-                INSERT INTO student (student_no, first_name, middle_name, last_name, sex, degree_program, date_graduated, is_member)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """
-            cursor.execute(insert_sql, (
-                data["Student No"],
-                data["First Name"],
-                data["Middle Name"] or None,
-                data["Last Name"],
-                data["Sex (Male/Female)"],
-                data["Degree Program"],
-                date_graduated,
-                is_member
-            ))
-            self.controller.mydb.commit()
-
-            tk.messagebox.showinfo("Success", f"Student '{data['Student No']}' added successfully.")
-            # Clear inputs
-            for entry in self.entries.values():
-                entry.delete(0, tk.END)
+            cursor.execute(query, param)
+            rows = cursor.fetchall()
+            for row in rows:
+                tree.insert("", "end", values=row)
         except mariadb.Error as err:
-            tk.messagebox.showerror("Database Error", str(err))
+            messagebox.showerror("Database Error", str(err))
+

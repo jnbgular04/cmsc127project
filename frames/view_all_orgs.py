@@ -128,6 +128,7 @@ class OrgsPage(tk.Frame):
             return
 
         org_name = self.tree.item(selected_item[0])["values"][0]
-        org_page = self.controller.frames["OrgManagePage"]
+        org_page = self.controller.frames["OrgDetailsPage"]
         org_page.load_organization(org_name)
-        self.controller.show_frame("OrgManagePage")
+        self.controller.show_frame("OrgDetailsPage")
+

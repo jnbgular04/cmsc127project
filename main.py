@@ -12,9 +12,13 @@ from frames.home import StudentHomePage
 from frames.login import OrgAdminLogin
 from frames.login import StudentLogin
 from frames.org_manage import AddCommittee, OrgManagePage
-from frames.students import AddStudentPage, StudentsPage
+# from frames.fees import FeesPage
+from frames.org_finances import OrgFinancesPage
+from frames.students import StudentsPage
 from frames.view_all_orgs import OrgsPage
 from frames.view_org_members import AddFeePage, AddMemberPage, ViewMembersPage
+from frames.org_details import OrgDetailsPage
+# from frames.reports import ReportsPage
 
 #for setting up of database
 def setup_database(cursor):
@@ -168,19 +172,27 @@ class MainApp(tk.Tk):
         #Think of routing in cmsc 100
         pages = {
             "LandingPage" : LandingPage,
+            #Global Admin Pages
             "AdminHomePage": AdminHomePage,
-            "OrgAdminHomePage" : OrgAdminHomePage,
-            "StudentHomePage": StudentHomePage,
-            "OrgAdminLogin" : OrgAdminLogin,
-            "StudentLogin" : StudentLogin,
             "OrgsPage": OrgsPage,
             "StudentsPage": StudentsPage,
-            "AddStudentPage": AddStudentPage,
+            # "AddStudentPage": AddStudentPage,
+            "OrgFinancesPage": OrgFinancesPage,
+            "OrgDetailsPage": OrgDetailsPage,
+            #Org Admin Pages
+            "OrgAdminLogin" : OrgAdminLogin,
+            "OrgAdminHomePage" : OrgAdminHomePage,
             "AddCommittee": AddCommittee,
-            "ViewMembersPage": ViewMembersPage,
             "AddMemberPage" : AddMemberPage,
             "AddFeePage" : AddFeePage,
-            "OrgManagePage" : OrgManagePage
+            "OrgManagePage" : OrgManagePage,
+            #Student Pages
+            "StudentLogin" : StudentLogin,
+            "StudentHomePage": StudentHomePage,
+            #Pages Shared Between Roles 
+            # "FeesPage": FeesPage,
+            # "ReportsPage": ReportsPage,
+            "ViewMembersPage": ViewMembersPage,
         }
 
         for name, F in pages.items():

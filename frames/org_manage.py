@@ -15,7 +15,7 @@ class OrgManagePage(tk.Frame):
         main_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         btn_view_members = tk.Button(main_frame, text="View Members", 
-                             command=self.load_members)
+                            command=self.load_members)
         btn_view_members.pack()
         
         # BACK TO HOME BUTTON - MODIFIED
@@ -23,7 +23,7 @@ class OrgManagePage(tk.Frame):
         self.btn_back.pack()
 
         btn_add_comm = tk.Button(main_frame, text="Add Committee",
-                                 command=self.go_to_add_committee)
+                                command=self.go_to_add_committee)
         btn_add_comm.pack(pady=5)
 
         # Optional: Keep the button if you want manual refresh capability
@@ -57,9 +57,9 @@ class OrgManagePage(tk.Frame):
         self.controller.show_frame("ViewMembersPage")
 
     def go_to_add_committee(self):
-        org_name = self.org_name   # however you track the current org
+        org_name = self.org_name  # ← must be set already via load_organization()
         add_comm_page = self.controller.frames["AddCommittee"]
-        add_comm_page.load_organization(org_name)
+        add_comm_page.load_organization(org_name)  # ← critical step
         self.controller.show_frame("AddCommittee")
 
     def view_committees(self):
@@ -86,34 +86,38 @@ class OrgManagePage(tk.Frame):
 
 class AddCommittee(tk.Frame):
     def __init__(self, parent, controller):
-        super().__init__(parent)
-        self.controller = controller
+            super().__init__(parent)
+            self.controller = controller
 
-        self.add_comm_label = tk.Label(self, text="",font=("Arial", 14))
-        self.add_comm_label.pack(pady=10)
+            self.org_name = None  # ✅ Prevent AttributeError
 
-        form_frame = tk.Frame(self)
-        form_frame.pack(pady=10)
+            self.add_comm_label = tk.Label(self, text="",font=("Arial", 14))
+            self.add_comm_label.pack(pady=10)
 
-        # Entry for committee name
-        tk.Label(form_frame, text="Committee Name:").grid(row=1, column=0, sticky="e")
-        self.entry_comm_name = tk.Entry(form_frame, width=32)
-        self.entry_comm_name.grid(row=1, column=1)
+            form_frame = tk.Frame(self)
+            form_frame.pack(pady=10)
 
-        # Add Committee button
-        btn_add_comm = tk.Button(form_frame, text="Add Committee", command=self.add_committee)
-        btn_add_comm.grid(row=2, column=0, columnspan=2, pady=10)
+            # Entry for committee name
+            tk.Label(form_frame, text="Committee Name:").grid(row=1, column=0, sticky="e")
+            self.entry_comm_name = tk.Entry(form_frame, width=32)
+            self.entry_comm_name.grid(row=1, column=1)
 
-        # Back button
-        btn_back = tk.Button(self, text="Back to Orgs Page", command=self.go_back_from_add_committee)
-        btn_back.pack(pady=5)
+            # Add Committee button
+            btn_add_comm = tk.Button(form_frame, text="Add Committee", command=self.add_committee)
+            btn_add_comm.grid(row=2, column=0, columnspan=2, pady=10)
+
+            # Back button
+            btn_back = tk.Button(self, text="Back to Orgs Page", command=self.go_back_from_add_committee)
+            btn_back.pack(pady=5)
 
     def go_back_from_add_committee(self):
+        if not self.org_name:
+            messagebox.showwarning("Navigation Error", "No organization context available.")
+            return
         org_manage_page = self.controller.frames["OrgManagePage"]
-        # Ensure the OrgManagePage is loaded with the correct organization again
-        # This is important if OrgManagePage relies on self.org_name when it is raised.
-        org_manage_page.load_organization(self.org_name) 
+        org_manage_page.load_organization(self.org_name)
         self.controller.show_frame("OrgManagePage")
+
 
     def load_organization(self, org_name):
         self.org_name = org_name   

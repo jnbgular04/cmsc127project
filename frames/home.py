@@ -12,12 +12,16 @@ class AdminHomePage(tk.Frame):
         label.pack(pady=20)
         
         # Use string in main as reference
-        btn_all_orgs = tk.Button(self, text="See All Registered Organizations", 
+        btn_all_orgs = tk.Button(self, text="View All Registered Organizations", 
                            command=lambda: controller.show_frame("OrgsPage"))
         btn_all_orgs.pack()
 
-        btn_students = tk.Button(self, text="Students Page",
+        btn_students = tk.Button(self, text="View Student Records",
                                command=lambda: controller.show_frame("StudentsPage"))
+        btn_students.pack()
+
+        btn_students = tk.Button(self, text="View Organization Finances",
+                               command=lambda: controller.show_frame("OrgFinancesPage"))
         btn_students.pack()
 
         tk.Button(self, text="Go Back to Landing Page",
@@ -35,14 +39,20 @@ class OrgAdminHomePage(tk.Frame):
         self.info_label = tk.Label(self, text="")
         self.info_label.pack(pady=10)
 
-        tk.Button(self, text="View My Organization Details",
+        btn_view_members = tk.Button(self, text="View Members", 
+                            command=self.load_members)
+        btn_view_members.pack()
+
+        tk.Button(self, text="Manage Organization Committees",
                   command=self.view_my_org).pack(pady=5)
 
-        tk.Button(self, text="Add Members", 
-                  command=lambda: controller.show_frame("AddMemberPage")).pack(pady=5)
+        # Organization Fees
+        tk.Button(self, text="Manage Organization Fees",
+                  command=self.view_my_org).pack(pady=5)
 
-        tk.Button(self, text="Assign Committees",
-                  command=lambda: controller.show_frame("AddCommittee")).pack(pady=5)
+        # 
+        tk.Button(self, text="View Organization Events",
+                  command=self.view_my_org).pack(pady=5)
 
         tk.Button(self, text="Go Back to Landing Page",
                   command=lambda: controller.show_frame("LandingPage")).pack(pady=20)
@@ -61,6 +71,21 @@ class OrgAdminHomePage(tk.Frame):
         org_page.load_organization(org_name)
         self.controller.from_org_admin = True
         self.controller.show_frame("OrgManagePage")
+
+    def load_organization(self, org_name):
+        self.org_name = org_name   
+        self.label.config(text=f"Showing details for: {self.org_name}")
+    
+    def load_members(self):
+        org_name = getattr(self.controller, 'selected_org', None)
+        if not org_name:
+            messagebox.showerror("Error", "No organization selected.")
+            return
+
+        members_page = self.controller.frames["ViewMembersPage"]
+        members_page.load_members(org_name)
+        self.controller.show_frame("ViewMembersPage")
+
 
 class StudentHomePage(tk.Frame):
     def __init__(self, parent, controller):
