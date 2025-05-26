@@ -40,7 +40,7 @@ class OrgManagePage(tk.Frame):
             # Reset the flag after use to prevent incorrect routing from other pages
             self.controller.from_org_admin = False 
         else:
-            self.controller.show_frame("AdminHomePage")
+            self.controller.show_frame("OrgsPage")
 
     def load_organization(self, org_name):
         self.org_name = org_name   
