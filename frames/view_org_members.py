@@ -9,7 +9,7 @@ class ViewMembersPage(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        btn_back = tk.Button(self, text="Back to Org", command=lambda: controller.show_frame("OrgManagePage"))
+        btn_back = tk.Button(self, text="Back to Org", command=lambda: controller.show_frame("OrgAdminHomePage"))
         btn_back.pack(pady=5)
 
         btn_add_member = tk.Button(self, text="Add Member", command=self.open_add_member_form)
@@ -18,8 +18,8 @@ class ViewMembersPage(tk.Frame):
         btn_add_fee = tk.Button(self, text="Add Fees for Selected Member", command=self.open_member_fee)
         btn_add_fee.pack(pady=5)
 
-        btn_add_comm = tk.Button(self, text="Assign Committee to Selected Member")
-        btn_add_comm.pack(pady=5)
+        btn_assign_comm = tk.Button(self, text="Assign Committee and Role to Selecteed Member", command=self.open_assign_comm)
+        btn_assign_comm.pack(pady=5)
 
         btn_add_comm = tk.Button(self, text="Update Selected Member")
         btn_add_comm.pack(pady=5)
@@ -28,7 +28,7 @@ class ViewMembersPage(tk.Frame):
         self.label_title.pack(pady=5)
 
         # Treeview to show members
-        cols = ("Student No", "First Name", "Last Name", "Academic Year", "Semester", "Status")
+        cols = ("Student No", "First Name", "Last Name", "Academic Year", "Semester", "Status", "Committee", "Role")
         self.tree = ttk.Treeview(self, columns=cols, show="headings")
         for col in cols:
             self.tree.heading(col, text=col)
@@ -37,9 +37,7 @@ class ViewMembersPage(tk.Frame):
 
         btn_refresh = tk.Button(self, text="Refresh Page", command=lambda: self.load_members(self.org_name))
         btn_refresh.pack(pady=5)
-
-
-
+    
     def load_members(self, org_name):
         self.org_name = org_name
         for row in self.tree.get_children():
@@ -48,9 +46,9 @@ class ViewMembersPage(tk.Frame):
         try:
             cursor = self.controller.mydb.cursor()
             cursor.execute("""
-                SELECT s.student_no, s.first_name, s.last_name, m.acad_year, m.semester, m.status
-                FROM membership m
-                JOIN student s ON m.student_no = s.student_no
+               SELECT s.student_no, s.first_name, s.last_name, m.acad_year, m.semester, m.status, ca.comm_name,ca.role
+                FROM membership m JOIN student s ON m.student_no = s.student_no
+                LEFT JOIN committee_assignment ca ON ca.student_no = m.student_no AND ca.org_name = m.org_name AND ca.acad_year = m.acad_year AND ca.semester = m.semester
                 WHERE m.org_name = %s
             """, (org_name,))
             results = cursor.fetchall()
@@ -75,6 +73,8 @@ class ViewMembersPage(tk.Frame):
         # Load student list
         add_member_page.load_students()
 
+        add_member_page.load_committees(org_name)
+
         # Show AddMemberPage
         self.controller.show_frame("AddMemberPage")
 
@@ -89,8 +89,138 @@ class ViewMembersPage(tk.Frame):
         add_fee_page = self.controller.frames["AddFeePage"]
         add_fee_page.set_selected_org(org_name)
         add_fee_page.set_selected_member_data(member_data) #sends data to selected_member_page
+        
 
         self.controller.show_frame("AddFeePage")
+
+    def open_assign_comm(self):
+        org_name = self.org_name
+        selected = self.tree.focus()
+        if not selected:
+            messagebox.showwarning("Select Member", "Please select a member from the list.")
+            return
+
+        member_data = self.tree.item(selected)['values']
+        add_comm_page = self.controller.frames["AddCommitteeRolePage"]
+        add_comm_page.set_selected_org(org_name)
+        add_comm_page.set_selected_member_data(member_data) #sends data to selected_member_page
+        add_comm_page.load_committees(org_name)
+        
+
+        self.controller.show_frame("AddCommitteeRolePage")
+
+
+class AddCommitteeRolePage(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        self.selected_member_data = None
+
+        details_frame = tk.Frame(self)
+        details_frame.pack(pady=10)
+
+       
+        tk.Label(details_frame, text = "Current Member Details:", font=("Arial", 12)).grid(row=0, column=0, sticky="w", pady=5)
+
+        self.member_lname_label = tk.Label(details_frame, text="", font=("Arial", 12))
+        self.member_lname_label.grid(row=1, column=0, sticky="w", pady=5)
+
+        self.member_comm_label = tk.Label(details_frame, text="", font=("Arial", 12))
+        self.member_comm_label.grid(row=2, column=0, sticky="w", pady=5)
+
+        self.member_role_label = tk.Label(details_frame, text="", font=("Arial", 12))
+        self.member_role_label.grid(row=3, column=0, sticky="w", pady=5)
+
+        assign_comm_frame = tk.Frame(self)
+        assign_comm_frame.pack(pady=10)
+
+        # Label (1st row, 1st column)
+        tk.Label(assign_comm_frame, text="Assign Committee :", font=("Arial", 12)).grid(row=0, column=0, sticky="w", pady=5)
+
+        # Dropdown (1st row, 2nd column)
+        self.assign_committee_var = tk.StringVar()
+        self.assign_committee_dropdown = ttk.Combobox(
+            assign_comm_frame,
+            textvariable=self.assign_committee_var,
+            state="readonly",
+            width=30
+        )
+        self.assign_committee_dropdown.grid(row=0, column=1, padx=10, pady=5)
+
+        # Role label and entry (2nd row)
+        tk.Label(assign_comm_frame, text="Role :", font=("Arial", 12)).grid(row=1, column=0, sticky="w", pady=5)
+        self.role_var = tk.StringVar()
+        self.entry_role = tk.Entry(assign_comm_frame, textvariable=self.role_var, width=30)
+        self.entry_role.grid(row=1, column=1, padx=10, pady=5)
+
+        # Confirm button (2nd row, spans two columns)
+        btn_confirm_assignment = tk.Button(
+            assign_comm_frame,
+            text="Confirm Assignment",
+            command=self.assign_committee_to_member
+        )
+
+        btn_confirm_assignment.grid(row=2, column=0, columnspan=2, pady=10)
+
+        btn_back = tk.Button(self, text="Back to Org", command=lambda: controller.show_frame("ViewMembersPage"))
+        btn_back.pack(pady=5)
+
+    def set_selected_org(self, org_name):
+        self.org_name = org_name
+
+    def set_selected_member_data(self, member_data):
+        self.selected_member_data = member_data
+        if self.selected_member_data:
+            self.member_lname_label.config(text=f"Last Name: {self.selected_member_data[2]}")
+            self.member_comm_label.config(text=f"Committee: {self.selected_member_data[6]}")
+            self.member_role_label.config(text=f"Role: {self.selected_member_data[7]}")
+        else:
+            self.member_lname_label.config(text="Last Name: -")
+            self.member_comm_label.config(text="Committee: -")
+            self.member_role_label.config(text="Role: -")
+     
+    def assign_committee_to_member(self):
+        if not hasattr(self, 'selected_member_data'):
+            messagebox.showerror("Error", "No member selected.")
+            return
+
+        try:
+            student_no = self.selected_member_data[0]
+            acad_year = self.selected_member_data[3]
+            semester = self.selected_member_data[4]
+            org_name = self.org_name
+            comm_name = self.assign_committee_var.get()
+            role = self.role_var.get().strip()
+
+            if not comm_name or not role:
+                messagebox.showwarning("Missing Fields", "Please select a committee and enter a role.")
+                return
+
+            cursor = self.controller.mydb.cursor()
+            cursor.execute("""
+                INSERT INTO committee_assignment (student_no, org_name, comm_name, role, semester, acad_year)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE role = VALUES(role), comm_name = VALUES(comm_name)
+            """, (student_no, org_name, comm_name, role, semester, acad_year))
+            self.controller.mydb.commit()
+
+            messagebox.showinfo("Success", f"{self.selected_member_data[1]} assigned to {comm_name} as {role}.")
+        except Exception as e:
+            messagebox.showerror("Database Error", str(e))
+
+    def load_committees(self, org_name):
+        try:
+            cursor = self.controller.mydb.cursor()
+            cursor.execute("SELECT comm_name FROM committee WHERE org_name = %s", (org_name,))
+            results = cursor.fetchall()
+            committee_names = [row[0] for row in results]
+
+            self.assign_committee_dropdown['values'] = committee_names
+            if committee_names:
+                self.assign_committee_var.set(committee_names[0])
+        except Exception as e:
+            messagebox.showerror("Error loading committees", str(e))
+
 
 class AddFeePage(tk.Frame): #AddMembersPage ito haha rename nalang
     def __init__(self, parent, controller):
@@ -221,7 +351,6 @@ class AddFeePage(tk.Frame): #AddMembersPage ito haha rename nalang
         except Exception as e:
             messagebox.showerror("Database Error", str(e))
 
-
 class AddMemberPage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -277,9 +406,40 @@ class AddMemberPage(tk.Frame):
         btn_add = tk.Button(self, text="Add Member", command=self.add_member_to_org)
         btn_add.pack(pady=5)
 
+        # Dropdown for Committees
+        tk.Label(self, text="Committee : ", font=("Arial", 12)).pack(pady=10)
+        self.committee_var = tk.StringVar()
+        self.committee_dropdown = ttk.Combobox(
+            self,
+            textvariable=self.committee_var,
+            state="readonly"
+        )
+        self.committee_dropdown.pack(pady=5)
+
         # Back
         btn_back = tk.Button(self, text="Back", command=lambda: controller.show_frame("ViewMembersPage"))
         btn_back.pack(pady=5)
+
+    def load_committees(self, org_name):
+        try:
+            cursor = self.controller.mydb.cursor()
+            cursor.execute("""
+                SELECT comm_name
+                FROM committee
+                WHERE org_name = %s
+            """, (org_name,))
+            results = cursor.fetchall()
+
+            committee_names = [row[0] for row in results]
+            if committee_names:
+                self.committee_dropdown['values'] = committee_names
+                self.committee_var.set(committee_names[0])  # Default selection
+            else:
+                self.committee_dropdown['values'] = ["No committees found"]
+                self.committee_var.set("No committees found")
+
+        except Exception as e:
+            messagebox.showerror("Database Error", str(e))
 
     def load_students(self):
         try:

@@ -14,12 +14,8 @@ class OrgManagePage(tk.Frame):
         main_frame = tk.Frame(self)
         main_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        btn_view_members = tk.Button(main_frame, text="View Members", 
-                            command=self.load_members)
-        btn_view_members.pack()
-        
         # BACK TO HOME BUTTON - MODIFIED
-        self.btn_back = tk.Button(main_frame, text="Back to Home", command=self.go_back)
+        self.btn_back = tk.Button(main_frame, text="Back to Org Admin Home Page", command=self.go_back)
         self.btn_back.pack()
 
         btn_add_comm = tk.Button(main_frame, text="Add Committee",
@@ -117,7 +113,6 @@ class AddCommittee(tk.Frame):
         org_manage_page = self.controller.frames["OrgManagePage"]
         org_manage_page.load_organization(self.org_name)
         self.controller.show_frame("OrgManagePage")
-
 
     def load_organization(self, org_name):
         self.org_name = org_name   

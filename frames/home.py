@@ -48,11 +48,11 @@ class OrgAdminHomePage(tk.Frame):
 
         # Organization Fees
         tk.Button(self, text="Manage Organization Fees",
-                  command=self.view_my_org).pack(pady=5)
+                  ).pack(pady=5)
 
         # 
         tk.Button(self, text="View Organization Events",
-                  command=self.view_my_org).pack(pady=5)
+                  ).pack(pady=5)
 
         tk.Button(self, text="Go Back to Landing Page",
                   command=lambda: controller.show_frame("LandingPage")).pack(pady=20)
