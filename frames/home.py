@@ -45,7 +45,7 @@ class OrgAdminHomePage(tk.Frame):
 
         tk.Button(self, text="Manage Organization Committees",
                   command=self.view_my_org).pack(pady=5)
-
+        
         # Organization Fees
         tk.Button(self, text="Manage Organization Fees",
                   ).pack(pady=5)
@@ -53,6 +53,9 @@ class OrgAdminHomePage(tk.Frame):
         # 
         tk.Button(self, text="View Organization Events",
                   ).pack(pady=5)
+        
+        tk.Button(self, text="Generate Organization Reports",
+                  command=self.generate_reports).pack(pady=5)
 
         tk.Button(self, text="Go Back to Landing Page",
                   command=lambda: controller.show_frame("LandingPage")).pack(pady=20)
@@ -61,6 +64,13 @@ class OrgAdminHomePage(tk.Frame):
         super().tkraise(*args, **kwargs)
         org_name = getattr(self.controller, 'selected_org', 'N/A')
         self.info_label.config(text=f"Logged in as Org Admin for: {org_name}")
+
+    def generate_reports(self):
+        org_name = getattr(self.controller, 'selected_org', None)
+        org_page = self.controller.frames["IndivOrgDetailsPage"]
+        org_page.load_organization(org_name)
+        self.controller.show_frame("IndivOrgDetailsPage")
+        print(org_name)
 
     def view_my_org(self):
         org_name = getattr(self.controller, 'selected_org', None)
@@ -85,7 +95,8 @@ class OrgAdminHomePage(tk.Frame):
         members_page = self.controller.frames["ViewMembersPage"]
         members_page.load_members(org_name)
         self.controller.show_frame("ViewMembersPage")
-
+    
+       
 
 class StudentHomePage(tk.Frame):
     def __init__(self, parent, controller):

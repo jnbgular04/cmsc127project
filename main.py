@@ -5,6 +5,7 @@ from tkinter import messagebox
 from tkinter import ttk
 
 from database import create_connection
+from frames.indiv_org_details import IndivOrgDetailsPage
 from frames.landing_page import LandingPage
 from frames.home import AdminHomePage
 from frames.home import OrgAdminHomePage
@@ -190,6 +191,7 @@ class MainApp(tk.Tk):
             #Student Pages
             "StudentLogin" : StudentLogin,
             "StudentHomePage": StudentHomePage,
+            "IndivOrgDetailsPage" : IndivOrgDetailsPage,
             #Pages Shared Between Roles 
             # "FeesPage": FeesPage,
             # "ReportsPage": ReportsPage,
