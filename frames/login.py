@@ -54,6 +54,8 @@ class StudentLogin(tk.Frame):
         result = cursor.fetchone()
         if result:
             self.controller.selected_student = student_no
+            home_page = self.controller.frames["StudentHomePage"]
+            home_page.load_student(student_no)
             self.controller.show_frame("StudentHomePage")
         else:
             messagebox.showerror("Not Found", "Student not found.")

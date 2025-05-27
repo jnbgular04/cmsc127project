@@ -7,6 +7,7 @@ from tkinter import ttk
 from database import create_connection
 from frames.indiv_org_details import IndivOrgDetailsPage
 from frames.indiv_org_finances import IndivOrgFinancesPage
+from frames.indiv_students_details import IndivStudentMembership, ViewFeesPage
 from frames.landing_page import LandingPage
 from frames.home import AdminHomePage
 from frames.home import OrgAdminHomePage
@@ -199,7 +200,9 @@ class MainApp(tk.Tk):
             # "FeesPage": FeesPage,
             # "ReportsPage": ReportsPage,
             "ViewMembersPage": ViewMembersPage,
-            "OrgEventPage" : OrgEventPage
+            "OrgEventPage" : OrgEventPage,
+            "IndivStudentMembership" : IndivStudentMembership,
+            "ViewFeesPage": ViewFeesPage
         }
 
         for name, F in pages.items():

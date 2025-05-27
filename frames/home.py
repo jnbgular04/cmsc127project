@@ -26,8 +26,7 @@ class AdminHomePage(tk.Frame):
 
         tk.Button(self, text="Go Back to Landing Page",
                   command=lambda: controller.show_frame("LandingPage")).pack(pady=20)
-    
-        
+      
 class OrgAdminHomePage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -110,23 +109,36 @@ class OrgAdminHomePage(tk.Frame):
         members_page.load_members(org_name)
         self.controller.show_frame("ViewMembersPage")
     
-       
-
 class StudentHomePage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-
+        self.student_no = None  # placeholder
+       
         label = tk.Label(self, text="Student Home Page", font=("Arial", 16))
         label.pack(pady=20)
 
         tk.Label(self, text="This view is for students to see their organization memberships and fees.").pack(pady=10)
 
         tk.Button(self, text="View My Memberships",
-                  command=lambda: controller.show_frame("ViewMembersPage")).pack(pady=5)
+                  command=self.view_memberships).pack(pady=5)
 
         tk.Button(self, text="View My Fees",
-                  command=lambda: controller.show_frame("AddFeePage")).pack(pady=5)
+                  command=self.view_fees).pack(pady=5)
 
         tk.Button(self, text="Go Back to Landing Page",
                   command=lambda: controller.show_frame("LandingPage")).pack(pady=20)
+
+    def load_student(self, stdn_num):
+        self.student_no = stdn_num
+        print(self.student_no)
+
+    def view_memberships(self):
+        members_page = self.controller.frames["IndivStudentMembership"]
+        members_page.load_student(self.student_no)
+        self.controller.show_frame("IndivStudentMembership")
+    
+    def view_fees(self):
+        fees_page = self.controller.frames["ViewFeesPage"]
+        fees_page.load_fees(self.student_no)
+        self.controller.show_frame("ViewFeesPage")
