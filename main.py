@@ -23,6 +23,7 @@ from frames.view_all_orgs import OrgsPage
 from frames.view_org_members import  AddFeePage, AddMemberPage, UpdateMemberDetail, ViewMembersPage
 from frames.org_details import OrgDetailsPage
 # from frames.reports import ReportsPage
+from frames.student_view import StudentViewPage
 
 #for setting up of database
 def setup_database(cursor):
@@ -200,6 +201,7 @@ class MainApp(tk.Tk):
             # "FeesPage": FeesPage,
             # "ReportsPage": ReportsPage,
             "ViewMembersPage": ViewMembersPage,
+            "StudentViewPage": StudentViewPage,
             "OrgEventPage" : OrgEventPage,
             "IndivStudentMembership" : IndivStudentMembership,
             "ViewFeesPage": ViewFeesPage

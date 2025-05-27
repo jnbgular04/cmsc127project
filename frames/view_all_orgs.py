@@ -41,7 +41,7 @@ class OrgsPage(tk.Frame):
         btn_delete = tk.Button(btn_frame, text="Delete Selected", command=self.delete_organization)
         btn_delete.grid(row=0, column=1, padx=5)
 
-        btn_view = tk.Button(btn_frame, text="View Details", command=self.view_organization_details)
+        btn_view = tk.Button(btn_frame, text="View Details", command=self.view)
         btn_view.grid(row=0, column=2, padx=5)
 
         btn_refresh = tk.Button(self, text="Refresh Page", command=self.load_organizations)
