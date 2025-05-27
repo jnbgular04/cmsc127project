@@ -67,7 +67,7 @@ class ViewMembersPage(tk.Frame):
         entry_search = tk.Entry(control_frame, textvariable=self.search_var, width=30)
         entry_search.grid(row=13, column=0, pady=2)
 
-        btn_search = tk.Button(control_frame, text="Refresh Page", command=self.search_student)
+        btn_search = tk.Button(control_frame, text="Search Student", command=self.search_student)
         btn_search.grid(row=14, column=0, sticky="ew", pady=5)
 
         btn_refresh = tk.Button(control_frame, text="Refresh Page", command=lambda: self.load_members(self.org_name))
@@ -206,7 +206,6 @@ class ViewMembersPage(tk.Frame):
 
         try:
             cursor = self.controller.mydb.cursor()
-            #fix query here
             cursor.execute("""
                 SELECT s.student_no, s.first_name, s.last_name, m.year_joined, m.acad_year, m.semester, m.status, ca.comm_name,ca.role
                 FROM membership m JOIN student s ON m.student_no = s.student_no
