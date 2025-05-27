@@ -105,15 +105,15 @@ class ViewMembersPage(tk.Frame):
             return
 
         member_data = self.tree.item(selected)['values']
-        add_comm_page = self.controller.frames["AddCommitteeRolePage"]
+        add_comm_page = self.controller.frames["UpdateMemberDetail"]
         add_comm_page.set_selected_org(org_name)
         add_comm_page.set_selected_member_data(member_data) #sends data to selected_member_page
         add_comm_page.load_committees(org_name)
         
 
-        self.controller.show_frame("AddCommitteeRolePage")
+        self.controller.show_frame("UpdateMemberDetail")
 
-class AddCommitteeRolePage(tk.Frame):
+class UpdateMemberDetail(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
@@ -230,6 +230,7 @@ class AddCommitteeRolePage(tk.Frame):
     def update_comm(self):
         student_no = self.selected_member_data[0]
         old_acad_year = self.selected_member_data[4]
+        current_semester = self.selected_member_data[5]
         current_comm_name =  self.selected_member_data[7]
         current_role =  self.selected_member_data[8]
         org_name = self.org_name
@@ -243,52 +244,59 @@ class AddCommitteeRolePage(tk.Frame):
             messagebox.showwarning("Incomplete Input", "Please make sure to select a committee, enter a role, and select a semester.")
             return
         
-        if new_acad_year == old_acad_year or self.is_valid_acad_year(new_acad_year):
+        if not self.is_valid_acad_year(new_acad_year):
             messagebox.showwarning("Error", "Cannot update to same acad year or invalid year")
             return
         
-        if  current_comm_name == new_comm_name:
-            messagebox.showwarning("Error", "Cannot update to same committee")
+        if  (new_semester == current_semester and new_comm_name == current_comm_name) or (new_semester == current_semester and new_comm_name == current_comm_name and old_acad_year == new_acad_year):
+            messagebox.showwarning("Error", "Cannot update due to same semester, committee or acad year.")
             return
         
         if new_role == "" :
             messagebox.showwarning("Error", "Cannot have empty role")
             return
         
+        cursor = self.controller.mydb.cursor()
+        try:
+            cursor = self.controller.mydb.cursor()
+            cursor.execute("""
+                INSERT INTO committee_assignment (student_no, org_name, comm_name, role, semester, acad_year)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (student_no, org_name, new_comm_name, new_role, new_semester, new_acad_year))
 
+            # if update committee, update sem of the member too?
+            self.controller.mydb.commit()
 
-        # cursor = self.controller.mydb.cursor()
-        # try:
-        #     # Track messages for confirmation
-        #     changes = []
+            messagebox.showinfo("Success", f"{self.selected_member_data[1]} assigned to {new_comm_name} as {new_role} for term {new_semester} Sem {new_acad_year}.")
+        except Exception as e:
+            messagebox.showerror("Database Error", str(e))
 
-        #     if (catch if no semester or committee)
-        #         cursor.execute("""
-        #             UPDATE committee_assignment
-        #             SET comm_name = %s
-        #             WHERE student_no = %s AND org_name = %s AND acad_year = %s AND semester = %s
-        #         """, (new_comm_name, student_no, org_name, acad_year, new_semester))
-
-        #     self.controller.mydb.commit()
-        #     if changes:
-        #         messagebox.showinfo("Success", "Update Successful:\n" + "\n".join(changes))
-        #     else:
-        #         messagebox.showinfo("No Changes", "Nothing was updated.")
-
-        # except Exception as e:
-        #     self.controller.mydb.rollback()
-        #     messagebox.showerror("Database Error", str(e))
- 
     
     def update_status(self):
-       student_no = self.selected_member_data[0]
-       old_status = self.selected_member_data[6]
-       new_status = self.update_status_var.get()
-       print(new_status)
-       
-       if new_status == old_status:
-        messagebox.showwarning("Error", "Cannot update to same status")
-        return
+        student_no = self.selected_member_data[0]
+        old_status = self.selected_member_data[6]
+        new_status = self.update_status_var.get()
+        acad_year = self.selected_member_data[4]
+        current_semester = self.selected_member_data[5]
+        org_name = self.org_name
+        print(new_status)
+
+        if new_status == old_status:
+            messagebox.showwarning("Error", "Cannot update to same status")
+            return
+
+        try:
+            cursor = self.controller.mydb.cursor()
+            cursor.execute("""
+                UPDATE membership SET status = %s 
+                    WHERE student_no = %s AND org_name = %s
+                    AND acad_year = %s AND semester =  %s;
+            """, (new_status,student_no, org_name, acad_year, current_semester,))
+            self.controller.mydb.commit()
+
+            messagebox.showinfo("Success", f"{self.selected_member_data[1]} updated to {new_status}.")
+        except Exception as e:
+            messagebox.showerror("Database Error", str(e))
 
     def update_role(self):
         student_no = self.selected_member_data[0]
@@ -307,6 +315,19 @@ class AddCommitteeRolePage(tk.Frame):
         if new_role == current_role:
             messagebox.showwarning("Error", "Cannot update to same role")
             return
+        
+        try:
+            cursor = self.controller.mydb.cursor()
+            cursor.execute("""
+                UPDATE committee_assignment SET role = %s 
+                    WHERE student_no = %s AND org_name = %s
+                    AND comm_name = %s
+            """, (new_role,student_no, org_name, current_comm_name,))
+            self.controller.mydb.commit()
+
+            messagebox.showinfo("Success", f"{self.selected_member_data[1]} updated role in {current_comm_name} to {new_role}.")
+        except Exception as e:
+            messagebox.showerror("Database Error", str(e))
 
 
     def load_committees(self, org_name):
