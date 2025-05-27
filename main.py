@@ -6,12 +6,14 @@ from tkinter import ttk
 
 from database import create_connection
 from frames.indiv_org_details import IndivOrgDetailsPage
+from frames.indiv_org_finances import IndivOrgFinancesPage
 from frames.landing_page import LandingPage
 from frames.home import AdminHomePage
 from frames.home import OrgAdminHomePage
 from frames.home import StudentHomePage
 from frames.login import OrgAdminLogin
 from frames.login import StudentLogin
+from frames.org_events import OrgEventPage
 from frames.org_manage import AddCommittee, OrgManagePage
 # from frames.fees import FeesPage
 from frames.org_finances import OrgFinancesPage
@@ -192,10 +194,12 @@ class MainApp(tk.Tk):
             "StudentLogin" : StudentLogin,
             "StudentHomePage": StudentHomePage,
             "IndivOrgDetailsPage" : IndivOrgDetailsPage,
+            "IndivOrgFinancesPage" : IndivOrgFinancesPage,
             #Pages Shared Between Roles 
             # "FeesPage": FeesPage,
             # "ReportsPage": ReportsPage,
             "ViewMembersPage": ViewMembersPage,
+            "OrgEventPage" : OrgEventPage
         }
 
         for name, F in pages.items():

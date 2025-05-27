@@ -661,7 +661,7 @@ class AddMemberPage(tk.Frame):
         self.semester_dropdown.pack(pady=5)
 
         self.entry_acad_year = tk.StringVar()
-        tk.Label(self, text="Acad Year Joined (Batch) YYYY-YYYY", font=("Arial", 12)).pack(pady=10)
+        tk.Label(self, text="Acad Year Joined (YYYY-YYYY) :", font=("Arial", 12)).pack(pady=10)
         self.entry_acad_year = tk.Entry(self, textvariable=self.entry_acad_year)
         self.entry_acad_year.pack(pady=5)
 

@@ -48,11 +48,11 @@ class OrgAdminHomePage(tk.Frame):
         
         # Organization Fees
         tk.Button(self, text="Manage Organization Fees",
-                  ).pack(pady=5)
+                  command=self.view_org_fee).pack(pady=5)
 
         # 
         tk.Button(self, text="View Organization Events",
-                  ).pack(pady=5)
+                  command=self.view_events ).pack(pady=5)
         
         tk.Button(self, text="Generate Organization Reports",
                   command=self.generate_reports).pack(pady=5)
@@ -64,6 +64,20 @@ class OrgAdminHomePage(tk.Frame):
         super().tkraise(*args, **kwargs)
         org_name = getattr(self.controller, 'selected_org', 'N/A')
         self.info_label.config(text=f"Logged in as Org Admin for: {org_name}")
+    
+    def view_events(self):
+        org_name = getattr(self.controller, 'selected_org', None)
+        org_page = self.controller.frames["OrgEventPage"]
+        org_page.load_organization(org_name)
+        self.controller.show_frame("OrgEventPage")
+        print(org_name)
+
+    def view_org_fee(self):
+        org_name = getattr(self.controller, 'selected_org', None)
+        org_page = self.controller.frames["IndivOrgFinancesPage"]
+        org_page.load_organization(org_name)
+        self.controller.show_frame("IndivOrgFinancesPage")
+        print(org_name)
 
     def generate_reports(self):
         org_name = getattr(self.controller, 'selected_org', None)
