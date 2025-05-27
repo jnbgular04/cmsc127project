@@ -24,15 +24,6 @@ class OrgDetailsPage(tk.Frame):
         self.label_members = tk.Label(summary_frame, text="Members: 0", width=25)
         self.label_members.pack(side=tk.LEFT, padx=10)
 
-        self.label_committees = tk.Label(summary_frame, text="Committees: 0", width=25)
-        self.label_committees.pack(side=tk.LEFT, padx=10)
-
-        self.label_fees = tk.Label(summary_frame, text="Unpaid Fees: 0", width=25)
-        self.label_fees.pack(side=tk.LEFT, padx=10)
-
-        self.label_events = tk.Label(summary_frame, text="Events: 0", width=25)
-        self.label_events.pack(side=tk.LEFT, padx=10)
-
         # Main Notebook for Org Details and Reports
         self.main_notebook = ttk.Notebook(self)
         self.main_notebook.pack(fill="both", expand=True, padx=10, pady=10)
@@ -41,7 +32,6 @@ class OrgDetailsPage(tk.Frame):
         self.tree_members = self.create_tab("Members", ["Student No", "Name", "Status", "Semester", "AY"])
         self.tree_committees = self.create_tab("Committees", ["Committee Name"])
         self.tree_events = self.create_tab("Events", ["Event Name"])
-        self.tree_fees = self.create_tab("Fees", ["Ref No", "Student No", "Type", "Balance", "Due Date", "Date Paid"])
 
         # --- Reports Tabs ---
         self.reports_notebook = ttk.Notebook(self)
@@ -56,15 +46,6 @@ class OrgDetailsPage(tk.Frame):
         self.ay_dropdown.pack(side=tk.LEFT, padx=5)
         tk.Button(self.tab_exec, text="Generate", command=self.view_executive_committee).pack(side=tk.LEFT, padx=5)
         self.tree_exec = self.create_treeview(self.tab_exec, ["Student No", "Full Name", "Executive Role", "Term"])
-
-        # Active/Inactive Tab
-        self.tab_active = ttk.Frame(self.reports_notebook)
-        self.reports_notebook.add(self.tab_active, text="Active/Inactive Members")
-        tk.Label(self.tab_active, text="Last n Semesters:").pack(side=tk.LEFT, padx=5, pady=10)
-        self.n_sem_entry = tk.Entry(self.tab_active, width=5)
-        self.n_sem_entry.pack(side=tk.LEFT, padx=5)
-        tk.Button(self.tab_active, text="Generate", command=self.view_active_inactive).pack(side=tk.LEFT, padx=5)
-        self.tree_active = self.create_treeview(self.tab_active, ["Term", "Active", "Inactive", "Total", "% Active", "% Inactive"])
 
         # Officers Tab
         self.tab_officers = ttk.Frame(self.reports_notebook)
@@ -90,6 +71,33 @@ class OrgDetailsPage(tk.Frame):
 
         # Right: Treeview
         self.tree_officers = self.create_treeview(officers_container, ["Student No", "Full Name", "Term"])
+
+        # Active/Inactive Tab
+        self.tab_active = ttk.Frame(self.reports_notebook)
+        self.reports_notebook.add(self.tab_active, text="Active/Inactive Members")
+        tk.Label(self.tab_active, text="Last n Semesters:").pack(side=tk.LEFT, padx=5, pady=10)
+        self.n_sem_entry = tk.Entry(self.tab_active, width=5)
+        self.n_sem_entry.pack(side=tk.LEFT, padx=5)
+        tk.Button(self.tab_active, text="Generate", command=self.view_active_inactive).pack(side=tk.LEFT, padx=5)
+        self.tree_active = self.create_treeview(self.tab_active, ["Term", "Active", "Inactive", "Total", "% Active", "% Inactive"])
+
+        # Alumni Tab
+        self.tab_alumni = ttk.Frame(self.reports_notebook)
+        self.reports_notebook.add(self.tab_alumni, text="Alumni as of Date")
+
+        alumni_container = tk.Frame(self.tab_alumni)
+        alumni_container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        input_frame = tk.Frame(alumni_container)
+        input_frame.pack(side=tk.LEFT, anchor="n", padx=10)
+
+        tk.Label(input_frame, text="As of Date (YYYY-MM-DD):").pack(pady=5, anchor="w")
+        self.alumni_date_entry = tk.Entry(input_frame, width=15)
+        self.alumni_date_entry.pack(pady=5)
+
+        tk.Button(input_frame, text="Generate", command=self.view_alumni).pack(pady=10)
+
+        self.tree_alumni = self.create_treeview(alumni_container, ["Student No", "Full Name", "Degree Program", "Date Graduated"])
 
 
     def create_tab(self, title, columns):
@@ -119,8 +127,8 @@ class OrgDetailsPage(tk.Frame):
         cursor = conn.cursor()
 
         try:
-            for tree in [self.tree_members, self.tree_committees, self.tree_events, self.tree_fees,
-                         self.tree_exec, self.tree_active, self.tree_officers]:
+            for tree in [self.tree_members, self.tree_committees, self.tree_events,
+                         self.tree_exec, self.tree_active, self.tree_officers, self.tree_alumni]:
                 tree.delete(*tree.get_children())
 
             cursor.execute("""
@@ -143,17 +151,6 @@ class OrgDetailsPage(tk.Frame):
                 self.tree_events.insert("", "end", values=row)
 
             cursor.execute("""
-                SELECT reference_no, student_no, type, balance, due_date, date_paid
-                FROM fee
-                WHERE org_name = %s AND date_paid IS NULL
-            """, (org_name,))
-            fees = cursor.fetchall()
-            unpaid_count = sum(1 for f in fees if f[3] > 0)
-            self.label_fees.config(text=f"Unpaid Fees: {unpaid_count}")
-            for row in fees:
-                self.tree_fees.insert("", "end", values=row)
-
-            cursor.execute("""
                 SELECT DISTINCT acad_year FROM membership
                 WHERE org_name = %s ORDER BY acad_year DESC
             """, (org_name,))
@@ -162,7 +159,6 @@ class OrgDetailsPage(tk.Frame):
             if ay_list:
                 self.selected_ay.set(ay_list[0])
 
-            # Load executive roles dynamically
             self.load_executive_roles()
 
         except Exception as e:
@@ -318,6 +314,36 @@ class OrgDetailsPage(tk.Frame):
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load executive roles.\n{str(e)}")
 
+    def view_alumni(self):
+        org = self.current_org
+        as_of_date = self.alumni_date_entry.get().strip()
+
+        if not as_of_date:
+            messagebox.showwarning("Missing Date", "Please enter a valid date.")
+            return
+
+        try:
+            cursor = self.controller.mydb.cursor()
+            cursor.execute("""
+                SELECT s.student_no,
+                    CONCAT(s.last_name, ', ', s.first_name,
+                            CASE WHEN s.middle_name IS NOT NULL AND s.middle_name != ''
+                                THEN CONCAT(' ', s.middle_name) ELSE '' END) AS full_name,
+                    s.degree_program,
+                    s.date_graduated
+                FROM student s
+                JOIN membership m ON s.student_no = m.student_no
+                WHERE m.org_name = %s AND s.date_graduated IS NOT NULL AND s.date_graduated <= %s
+                ORDER BY s.date_graduated DESC
+            """, (org, as_of_date))
+
+            rows = cursor.fetchall()
+            self.populate_tree(self.tree_alumni,
+                            ["Student No", "Full Name", "Degree Program", "Date Graduated"],
+                            rows)
+
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
     def populate_tree(self, tree, columns, rows):
         tree.delete(*tree.get_children())
