@@ -29,11 +29,62 @@ class OrgDetailsPage(tk.Frame):
         self.main_notebook.pack(fill="both", expand=True, padx=10, pady=10)
 
         # --- Org Details Tabs ---
-        self.tree_members = self.create_tab("Members", ["Student No", "Name", "Status", "Semester", "AY"])
+        # Members Tab (Modified)
+        self.tab_members = ttk.Frame(self.main_notebook)
+        self.main_notebook.add(self.tab_members, text="Members")
+
+        # Filtering options for Members tab
+        filter_frame = tk.LabelFrame(self.tab_members, text="Filter Members")
+        filter_frame.pack(pady=10, padx=10, fill="x")
+
+        # Filter widgets
+        filter_widgets = {}
+        row_num = 0
+        col_num = 0
+
+        labels_and_vars = {
+            "Status:": (tk.StringVar(), ['Active', 'Inactive', 'Expelled', 'Suspended', 'Alumni']),
+            "Gender:": (tk.StringVar(), ['Male', 'Female']),
+            "Degree Program:": (tk.StringVar(), []), # Will be populated from DB
+            "Batch (Year Joined):": (tk.StringVar(), []), # Will be populated from DB
+            "Committee:": (tk.StringVar(), []), # Will be populated from DB
+            "Role:": (tk.StringVar(), []) # Will be populated from DB
+        }
+
+        self.filter_vars = {} # Store StringVar objects for easy access
+        for label_text, (var, values) in labels_and_vars.items():
+            tk.Label(filter_frame, text=label_text).grid(row=row_num, column=col_num, padx=5, pady=2, sticky="w")
+            combo = ttk.Combobox(filter_frame, textvariable=var, values=values, state="readonly", width=20)
+            combo.grid(row=row_num, column=col_num + 1, padx=5, pady=2, sticky="ew")
+            combo.set("") # Set default empty value
+            # Store var with a clean key, ensuring 'batch' is correctly mapped
+            clean_key = label_text.replace(":", "").strip().lower().replace(" ", "_")
+            if "batch_(year_joined)" in clean_key:
+                clean_key = "batch" # Explicitly set for batch
+            self.filter_vars[clean_key] = var
+            filter_widgets[label_text] = combo # Store combo for later population
+
+            col_num += 2
+            if col_num >= 6: # 3 pairs of label/combobox per row
+                row_num += 1
+                col_num = 0
+
+        # Filter and Clear Buttons
+        btn_filter = tk.Button(filter_frame, text="Apply Filters", command=self.apply_member_filters)
+        btn_filter.grid(row=row_num, column=0, columnspan=3, pady=10)
+        btn_clear_filters = tk.Button(filter_frame, text="Clear Filters", command=self.clear_member_filters)
+        btn_clear_filters.grid(row=row_num, column=3, columnspan=3, pady=10)
+
+
+        self.tree_members = self.create_treeview(self.tab_members, [
+            "Student No", "Name", "Status", "Gender", "Degree Program", "Batch", "Committee", "Role", "Semester", "AY"
+        ])
+        self.tree_members.pack(fill="both", expand=True) # Pack it after the filter frame
+
         self.tree_committees = self.create_tab("Committees", ["Committee Name"])
         self.tree_events = self.create_tab("Events", ["Event Name"])
 
-        # --- Reports Tabs ---
+        # --- Reports Tabs --- (Existing code, unchanged)
         self.reports_notebook = ttk.Notebook(self)
         self.reports_notebook.pack(fill="both", expand=True, padx=10, pady=10)
 
@@ -131,16 +182,8 @@ class OrgDetailsPage(tk.Frame):
                          self.tree_exec, self.tree_active, self.tree_officers, self.tree_alumni]:
                 tree.delete(*tree.get_children())
 
-            cursor.execute("""
-                SELECT m.student_no, CONCAT(s.first_name, ' ', s.last_name), m.status, m.semester, m.acad_year
-                FROM membership m
-                JOIN student s ON s.student_no = m.student_no
-                WHERE m.org_name = %s
-            """, (org_name,))
-            members = cursor.fetchall()
-            self.label_members.config(text=f"Members: {len(members)}")
-            for row in members:
-                self.tree_members.insert("", "end", values=row)
+            # Initial load for members tab (without filters)
+            self.load_members()
 
             cursor.execute("SELECT comm_name FROM committee WHERE org_name = %s", (org_name,))
             for row in cursor.fetchall():
@@ -159,10 +202,149 @@ class OrgDetailsPage(tk.Frame):
             if ay_list:
                 self.selected_ay.set(ay_list[0])
 
+            self.load_member_filter_options() # New method to load filter options
             self.load_executive_roles()
 
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    def load_members(self, filters=None):
+        """Loads members into tree_members, applying filters if provided."""
+        if not self.current_org:
+            return
+
+        conn = self.controller.mydb
+        cursor = conn.cursor()
+        self.tree_members.delete(*self.tree_members.get_children())
+
+        base_query = """
+            SELECT
+                s.student_no,
+                CONCAT(s.first_name, ' ', s.last_name) AS name,
+                m.status,
+                s.sex AS gender,
+                s.degree_program,
+                m.year_joined AS batch,
+                ca.comm_name,
+                ca.role,
+                m.semester,
+                m.acad_year
+            FROM membership m
+            JOIN student s ON s.student_no = m.student_no
+            LEFT JOIN committee_assignment ca
+                ON ca.student_no = m.student_no AND ca.org_name = m.org_name
+                AND ca.acad_year = m.acad_year AND ca.semester = m.semester
+            WHERE m.org_name = %s
+        """
+        params = [self.current_org]
+        where_clauses = []
+
+        if filters:
+            if filters.get("status"):
+                where_clauses.append("m.status = %s")
+                params.append(filters["status"])
+            if filters.get("gender"):
+                where_clauses.append("s.sex = %s")
+                params.append(filters["gender"])
+            if filters.get("degree_program"):
+                where_clauses.append("s.degree_program = %s")
+                params.append(filters["degree_program"])
+            if filters.get("batch"):
+                where_clauses.append("m.year_joined = %s")
+                params.append(filters["batch"])
+            if filters.get("committee"):
+                where_clauses.append("ca.comm_name = %s")
+                params.append(filters["committee"])
+            if filters.get("role"):
+                where_clauses.append("ca.role = %s")
+                params.append(filters["role"])
+
+        if where_clauses:
+            base_query += " AND " + " AND ".join(where_clauses)
+
+        base_query += " ORDER BY m.acad_year DESC, m.semester DESC"
+
+        try:
+            cursor.execute(base_query, params)
+            members = cursor.fetchall()
+            self.label_members.config(text=f"Members: {len(members)}")
+            for row in members:
+                self.tree_members.insert("", "end", values=row)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load members.\n{str(e)}")
+
+    def apply_member_filters(self):
+        """Collects filter values and reloads the members treeview."""
+        filters = {
+            "status": self.filter_vars["status"].get() if self.filter_vars["status"].get() else None,
+            "gender": self.filter_vars["gender"].get() if self.filter_vars["gender"].get() else None,
+            "degree_program": self.filter_vars["degree_program"].get() if self.filter_vars["degree_program"].get() else None,
+            "batch": self.filter_vars["batch"].get() if self.filter_vars["batch"].get() else None,
+            "committee": self.filter_vars["committee"].get() if self.filter_vars["committee"].get() else None,
+            "role": self.filter_vars["role"].get() if self.filter_vars["role"].get() else None,
+        }
+        # Remove empty filters
+        active_filters = {k: v for k, v in filters.items() if v}
+        self.load_members(active_filters)
+
+    def clear_member_filters(self):
+        """Clears all filter comboboxes and reloads all members."""
+        for var in self.filter_vars.values():
+            var.set("")
+        self.load_members() # Reload all members without filters
+
+    def load_member_filter_options(self):
+        """Populates the comboboxes with distinct values from the database."""
+        if not self.current_org:
+            return
+
+        conn = self.controller.mydb
+        cursor = conn.cursor()
+
+        try:
+            # Populate Degree Program
+            cursor.execute("SELECT DISTINCT degree_program FROM student ORDER BY degree_program")
+            degree_programs = [row[0] for row in cursor.fetchall()]
+            # Find the combobox for degree program and update its values
+            for child in self.tab_members.winfo_children():
+                if isinstance(child, tk.LabelFrame): # This is our filter_frame
+                    for gc in child.winfo_children():
+                        if isinstance(gc, ttk.Combobox) and gc.cget("textvariable") == str(self.filter_vars["degree_program"]):
+                            gc["values"] = degree_programs
+                            break
+
+            # Populate Batch (year_joined)
+            cursor.execute("SELECT DISTINCT year_joined FROM membership WHERE org_name = %s ORDER BY year_joined DESC", (self.current_org,))
+            batches = [row[0] for row in cursor.fetchall()]
+            for child in self.tab_members.winfo_children():
+                if isinstance(child, tk.LabelFrame):
+                    for gc in child.winfo_children():
+                        if isinstance(gc, ttk.Combobox) and gc.cget("textvariable") == str(self.filter_vars["batch"]):
+                            gc["values"] = batches
+                            break
+
+            # Populate Committee Names
+            cursor.execute("SELECT DISTINCT comm_name FROM committee WHERE org_name = %s ORDER BY comm_name", (self.current_org,))
+            committees = [row[0] for row in cursor.fetchall()]
+            for child in self.tab_members.winfo_children():
+                if isinstance(child, tk.LabelFrame):
+                    for gc in child.winfo_children():
+                        if isinstance(gc, ttk.Combobox) and gc.cget("textvariable") == str(self.filter_vars["committee"]):
+                            gc["values"] = committees
+                            break
+
+            # Populate Roles (from committee_assignment)
+            cursor.execute("SELECT DISTINCT role FROM committee_assignment WHERE org_name = %s ORDER BY role", (self.current_org,))
+            roles = [row[0] for row in cursor.fetchall()]
+            for child in self.tab_members.winfo_children():
+                if isinstance(child, tk.LabelFrame):
+                    for gc in child.winfo_children():
+                        if isinstance(gc, ttk.Combobox) and gc.cget("textvariable") == str(self.filter_vars["role"]):
+                            gc["values"] = roles
+                            break
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load filter options.\n{str(e)}")
 
     def view_executive_committee(self):
         org = self.current_org
@@ -327,8 +509,8 @@ class OrgDetailsPage(tk.Frame):
             cursor.execute("""
                 SELECT s.student_no,
                     CONCAT(s.last_name, ', ', s.first_name,
-                            CASE WHEN s.middle_name IS NOT NULL AND s.middle_name != ''
-                                THEN CONCAT(' ', s.middle_name) ELSE '' END) AS full_name,
+                                CASE WHEN s.middle_name IS NOT NULL AND s.middle_name != ''
+                                    THEN CONCAT(' ', s.middle_name) ELSE '' END) AS full_name,
                     s.degree_program,
                     s.date_graduated
                 FROM student s
@@ -339,8 +521,8 @@ class OrgDetailsPage(tk.Frame):
 
             rows = cursor.fetchall()
             self.populate_tree(self.tree_alumni,
-                            ["Student No", "Full Name", "Degree Program", "Date Graduated"],
-                            rows)
+                                ["Student No", "Full Name", "Degree Program", "Date Graduated"],
+                                rows)
 
         except Exception as e:
             messagebox.showerror("Error", str(e))

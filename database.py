@@ -3,8 +3,8 @@ import getpass
 
 def create_connection():
     #MAIN PROGRAM
-    password = "JazminMaria@2004"
-    # password = getpass.getpass("Password for root user: ")
+    # password = "JazminMaria@2004"
+    password = getpass.getpass("Password for root user: ")
 
 
     return mariadb.connect(
