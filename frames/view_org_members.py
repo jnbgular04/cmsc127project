@@ -21,6 +21,11 @@ class ViewMembersPage(tk.Frame):
         btn_assign_comm = tk.Button(self, text="Update Details for Selected Member", command=self.open_assign_comm)
         btn_assign_comm.pack(pady=5)
 
+        btn_generate_reports = tk.Button(self, text="Generate Reports", 
+                                        #  command=self.open_assign_comm
+                                         )
+        btn_generate_reports.pack(pady=5)
+
         self.label_title = tk.Label(self, text="Members of Organization", font=("Arial", 16))
         self.label_title.pack(pady=5)
 
