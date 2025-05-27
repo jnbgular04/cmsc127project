@@ -16,7 +16,7 @@ from frames.org_manage import AddCommittee, OrgManagePage
 from frames.org_finances import OrgFinancesPage
 from frames.students import StudentsPage
 from frames.view_all_orgs import OrgsPage
-from frames.view_org_members import AddFeePage, AddMemberPage, ViewMembersPage
+from frames.view_org_members import AddCommitteeRolePage, AddFeePage, AddMemberPage, ViewMembersPage
 from frames.org_details import OrgDetailsPage
 # from frames.reports import ReportsPage
 
@@ -183,6 +183,7 @@ class MainApp(tk.Tk):
             "OrgAdminLogin" : OrgAdminLogin,
             "OrgAdminHomePage" : OrgAdminHomePage,
             "AddCommittee": AddCommittee,
+            "AddCommitteeRolePage" : AddCommitteeRolePage,
             "AddMemberPage" : AddMemberPage,
             "AddFeePage" : AddFeePage,
             "OrgManagePage" : OrgManagePage,
