@@ -1,7 +1,7 @@
 import random
 import re
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import Label, Toplevel, ttk, messagebox
 from tkcalendar import DateEntry 
 
 class ViewMembersPage(tk.Frame):
@@ -28,16 +28,19 @@ class ViewMembersPage(tk.Frame):
         btn_add_member = tk.Button(control_frame, text="Add Member", command=self.open_add_member_form)
         btn_add_member.grid(row=1, column=0, sticky="ew", pady=2)
 
+        btn_delete_member = tk.Button(control_frame, text="Delete Selected Member", command=self.delete_member)
+        btn_delete_member.grid(row=2, column=0, sticky="ew", pady=2)
+
         btn_add_fee = tk.Button(control_frame, text="Add Fees for Selected Member", command=self.open_member_fee)
-        btn_add_fee.grid(row=2, column=0, sticky="ew", pady=2)
+        btn_add_fee.grid(row=3, column=0, sticky="ew", pady=2)
 
         btn_assign_comm = tk.Button(control_frame, text="Update Details for Selected Member", command=self.open_assign_comm)
-        btn_assign_comm.grid(row=3, column=0, sticky="ew", pady=2)
+        btn_assign_comm.grid(row=4, column=0, sticky="ew", pady=2)
 
         btn_generate_reports = tk.Button(control_frame, text="Generate Reports")
-        btn_generate_reports.grid(row=4, column=0, sticky="ew", pady=2)
+        btn_generate_reports.grid(row=5, column=0, sticky="ew", pady=2)
 
-        tk.Label(control_frame, text="Update Semester of Organization:", font=("Arial", 12)).grid(row=5, column=0, pady=(10, 2))
+        tk.Label(control_frame, text="Update Semester of Organization:", font=("Arial", 12)).grid(row=6, column=0, pady=(10, 2))
 
         self.update_sem_var = tk.StringVar()
         self.update_sem_dropdown = ttk.Combobox(
@@ -45,22 +48,30 @@ class ViewMembersPage(tk.Frame):
             values=["1st", "2nd"], state="readonly", width=30
             )
         self.update_sem_var.set("1st")
-        self.update_sem_dropdown.grid(row=6, column=0, pady=2)
+        self.update_sem_dropdown.grid(row=7, column=0, pady=2)
 
         btn_updsem = tk.Button(control_frame, text="Update Semester", command=self.update_sem)
-        btn_updsem.grid(row=7, column=0, sticky="ew", pady=2)
+        btn_updsem.grid(row=8, column=0, sticky="ew", pady=2)
 
-        tk.Label(control_frame, text="Update Acad Year:", font=("Arial", 12)).grid(row=8, column=0, pady=(10, 2))
+        tk.Label(control_frame, text="Update Acad Year:", font=("Arial", 12)).grid(row=9, column=0, pady=(10, 2))
 
         self.acad_year_var = tk.StringVar()
         entry_acad_year = tk.Entry(control_frame, textvariable=self.acad_year_var, width=30)
-        entry_acad_year.grid(row=9, column=0, pady=2)
+        entry_acad_year.grid(row=10, column=0, pady=2)
 
         btn_upd_ay = tk.Button(control_frame, text="Update Academic Year of Organization", command=self.update_ay)
-        btn_upd_ay.grid(row=10, column=0, sticky="ew", pady=2)
+        btn_upd_ay.grid(row=11, column=0, sticky="ew", pady=2)
+
+        tk.Label(control_frame, text="Search for student (Enter Student Number):", font=("Arial", 12)).grid(row=12, column=0, pady=(10, 2))
+        self.search_var = tk.StringVar()
+        entry_search = tk.Entry(control_frame, textvariable=self.search_var, width=30)
+        entry_search.grid(row=13, column=0, pady=2)
+
+        btn_search = tk.Button(control_frame, text="Search Student", command=self.search_student)
+        btn_search.grid(row=14, column=0, sticky="ew", pady=5)
 
         btn_refresh = tk.Button(control_frame, text="Refresh Page", command=lambda: self.load_members(self.org_name))
-        btn_refresh.grid(row=11, column=0, sticky="ew", pady=5)
+        btn_refresh.grid(row=15, column=0, sticky="ew", pady=5)
 
         cols = ("Student No", "First Name", "Last Name", "Year Joined", "Term Year", "Term Sem", "Status", "Committee", "Role")
         self.tree = ttk.Treeview(self, columns=cols, show="headings")
@@ -68,6 +79,77 @@ class ViewMembersPage(tk.Frame):
             self.tree.heading(col, text=col)
             self.tree.column(col, width=120, anchor="center")
             self.tree.grid(row=1, column=1, sticky="nsew", padx=10, pady=10)
+
+    def search_student(self):
+        org_name = self.org_name
+        student_no = self.search_var.get()
+
+        try:
+            cursor = self.controller.mydb.cursor()
+            query = """
+                SELECT s.student_no, s.first_name, s.last_name, 
+                    m.acad_year, m.semester, m.status 
+                FROM student s 
+                JOIN membership m ON s.student_no = m.student_no 
+                WHERE m.org_name = %s AND m.student_no = %s
+            """
+            cursor.execute(query, (org_name, student_no))
+            result = cursor.fetchone()
+
+            if result:
+                popup = Toplevel()
+                popup.title("Student Search Result")
+
+                tree = ttk.Treeview(popup, columns=("Student No", "First Name", "Last Name", "Academic Year", "Semester", "Status"), show='headings')
+                tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+                for col in tree["columns"]:
+                    tree.heading(col, text=col)
+                    tree.column(col, anchor=tk.CENTER, width=120)
+
+                tree.insert("", "end", values=result)
+            else:
+                messagebox.showinfo("Not Found", f"No record found for student no {student_no} in {org_name}.")
+
+        except Exception as e:
+                messagebox.showerror("Database Error", str(e))
+
+
+
+
+    def delete_member(self):
+        org_name = self.org_name
+        selected = self.tree.focus()
+
+        member_data = self.tree.item(selected)['values']
+        student_no = member_data[0]
+        print(member_data[0])
+        if not selected:
+            messagebox.showwarning("Select Member", "Please select a member from the list.")
+            return
+        
+        try:
+            cursor = self.controller.mydb.cursor()
+
+            cursor.execute("""
+                DELETE FROM membership
+                WHERE student_no = %s
+                and org_name = %s
+            """, (student_no, org_name))
+            self.controller.mydb.commit()
+
+            cursor.execute("""
+                DELETE FROM committee_assignment
+                WHERE student_no = %s
+                and org_name = %s
+            """, (student_no, org_name))
+            self.controller.mydb.commit()
+
+            messagebox.showinfo("Success", f"Members of {student_no}")
+        except Exception as e:
+            messagebox.showerror("Database Error", str(e))
+
+       
 
     def update_sem(self):
         new_semester = self.update_sem_var.get()
@@ -124,7 +206,6 @@ class ViewMembersPage(tk.Frame):
 
         try:
             cursor = self.controller.mydb.cursor()
-            #fix query here
             cursor.execute("""
                 SELECT s.student_no, s.first_name, s.last_name, m.year_joined, m.acad_year, m.semester, m.status, ca.comm_name,ca.role
                 FROM membership m JOIN student s ON m.student_no = s.student_no
