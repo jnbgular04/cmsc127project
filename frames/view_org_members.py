@@ -9,39 +9,116 @@ class ViewMembersPage(tk.Frame):
         super().__init__(parent)
         self.controller = controller
 
-        btn_back = tk.Button(self, text="Back to Org", command=lambda: controller.show_frame("OrgAdminHomePage"))
-        btn_back.pack(pady=5)
+        self.grid_columnconfigure(0, minsize=200)  
+        self.grid_columnconfigure(1, weight=1)    
+        self.grid_rowconfigure(1, weight=1)       
 
-        btn_add_member = tk.Button(self, text="Add Member", command=self.open_add_member_form)
-        btn_add_member.pack(pady=5)
+        self.label_title_var = tk.StringVar()
+        self.label_title_var.set("Members of Organization")
 
-        btn_add_fee = tk.Button(self, text="Add Fees for Selected Member", command=self.open_member_fee)
-        btn_add_fee.pack(pady=5)
+        self.label_title = tk.Label(self, textvariable=self.label_title_var, font=("Arial", 16))
+        self.label_title.grid(row=0, column=0, columnspan=2, pady=(10, 0), sticky="n")
 
-        btn_assign_comm = tk.Button(self, text="Update Details for Selected Member", command=self.open_assign_comm)
-        btn_assign_comm.pack(pady=5)
+        control_frame = tk.Frame(self)
+        control_frame.grid(row=1, column=0, padx=10, pady=10, sticky="n")
 
-        btn_generate_reports = tk.Button(self, text="Generate Reports", 
-                                        #  command=self.open_assign_comm
-                                         )
-        btn_generate_reports.pack(pady=5)
+        btn_back = tk.Button(control_frame, text="Back to Org", command=lambda: controller.show_frame("OrgAdminHomePage"))
+        btn_back.grid(row=0, column=0, sticky="ew", pady=2)
 
-        self.label_title = tk.Label(self, text="Members of Organization", font=("Arial", 16))
-        self.label_title.pack(pady=5)
+        btn_add_member = tk.Button(control_frame, text="Add Member", command=self.open_add_member_form)
+        btn_add_member.grid(row=1, column=0, sticky="ew", pady=2)
 
-        # Treeview to show members
+        btn_add_fee = tk.Button(control_frame, text="Add Fees for Selected Member", command=self.open_member_fee)
+        btn_add_fee.grid(row=2, column=0, sticky="ew", pady=2)
+
+        btn_assign_comm = tk.Button(control_frame, text="Update Details for Selected Member", command=self.open_assign_comm)
+        btn_assign_comm.grid(row=3, column=0, sticky="ew", pady=2)
+
+        btn_generate_reports = tk.Button(control_frame, text="Generate Reports")
+        btn_generate_reports.grid(row=4, column=0, sticky="ew", pady=2)
+
+        tk.Label(control_frame, text="Update Semester of Organization:", font=("Arial", 12)).grid(row=5, column=0, pady=(10, 2))
+
+        self.update_sem_var = tk.StringVar()
+        self.update_sem_dropdown = ttk.Combobox(
+            control_frame, textvariable=self.update_sem_var,
+            values=["1st", "2nd"], state="readonly", width=30
+            )
+        self.update_sem_var.set("1st")
+        self.update_sem_dropdown.grid(row=6, column=0, pady=2)
+
+        btn_updsem = tk.Button(control_frame, text="Update Semester", command=self.update_sem)
+        btn_updsem.grid(row=7, column=0, sticky="ew", pady=2)
+
+        tk.Label(control_frame, text="Update Acad Year:", font=("Arial", 12)).grid(row=8, column=0, pady=(10, 2))
+
+        self.acad_year_var = tk.StringVar()
+        entry_acad_year = tk.Entry(control_frame, textvariable=self.acad_year_var, width=30)
+        entry_acad_year.grid(row=9, column=0, pady=2)
+
+        btn_upd_ay = tk.Button(control_frame, text="Update Academic Year of Organization", command=self.update_ay)
+        btn_upd_ay.grid(row=10, column=0, sticky="ew", pady=2)
+
+        btn_refresh = tk.Button(control_frame, text="Refresh Page", command=lambda: self.load_members(self.org_name))
+        btn_refresh.grid(row=11, column=0, sticky="ew", pady=5)
+
         cols = ("Student No", "First Name", "Last Name", "Year Joined", "Term Year", "Term Sem", "Status", "Committee", "Role")
         self.tree = ttk.Treeview(self, columns=cols, show="headings")
         for col in cols:
             self.tree.heading(col, text=col)
             self.tree.column(col, width=120, anchor="center")
-        self.tree.pack(fill="both", expand=True, padx=10, pady=10)
+            self.tree.grid(row=1, column=1, sticky="nsew", padx=10, pady=10)
 
-        btn_refresh = tk.Button(self, text="Refresh Page", command=lambda: self.load_members(self.org_name))
-        btn_refresh.pack(pady=5)
+    def update_sem(self):
+        new_semester = self.update_sem_var.get()
+        org_name = self.org_name
+
+        cursor = self.controller.mydb.cursor()
+        try:
+            cursor = self.controller.mydb.cursor()
+
+            cursor.execute("""
+                UPDATE membership SET semester = %s 
+                    WHERE org_name = %s;
+            """, (new_semester, org_name))
+            self.controller.mydb.commit()
+
+            messagebox.showinfo("Success", "Updated Semester.")
+        except Exception as e:
+            messagebox.showerror("Database Error", str(e))
     
+    def is_valid_acad_year(self, acad_year_str):
+        match = re.fullmatch(r'(\d{4})-(\d{4})', acad_year_str)
+        if not match:
+            return False
+        start_year, end_year = map(int, match.groups())
+        return end_year == start_year + 1
+    
+    def update_ay(self):
+        org_name = self.org_name
+        new_acad_year = self.acad_year_var.get()
+
+        if not self.is_valid_acad_year(new_acad_year):
+            messagebox.showinfo("Error", "Cannot update to invalid academic year.")
+            return
+        
+        cursor = self.controller.mydb.cursor()
+        try:
+            cursor = self.controller.mydb.cursor()
+
+            cursor.execute("""
+                UPDATE membership SET acad_year = %s 
+                    WHERE org_name = %s;
+            """, (new_acad_year, org_name))
+            self.controller.mydb.commit()
+
+            messagebox.showinfo("Success", "Updated Academic Year.")
+        except Exception as e:
+            messagebox.showerror("Database Error", str(e))
+
     def load_members(self, org_name):
         self.org_name = org_name
+        self.label_title_var.set(f"Members of {self.org_name}")
         for row in self.tree.get_children():
             self.tree.delete(row)
 
@@ -201,7 +278,7 @@ class UpdateMemberDetail(tk.Frame):
         btn_upd_status.grid(row=0, column=2, padx=10)
 
         btn_back = tk.Button(button_frame, text="Back to Members Page", command=lambda: controller.show_frame("ViewMembersPage"))
-        btn_back.grid(row=0, column=3, padx=10)
+        btn_back.grid(row=0, column=4, padx=10)
 
     def set_selected_org(self, org_name):
         self.org_name = org_name
@@ -232,7 +309,6 @@ class UpdateMemberDetail(tk.Frame):
         old_acad_year = self.selected_member_data[4]
         current_semester = self.selected_member_data[5]
         current_comm_name =  self.selected_member_data[7]
-        current_role =  self.selected_member_data[8]
         org_name = self.org_name
 
         new_comm_name = self.assign_committee_var.get()
@@ -264,7 +340,6 @@ class UpdateMemberDetail(tk.Frame):
                 VALUES (%s, %s, %s, %s, %s, %s)
             """, (student_no, org_name, new_comm_name, new_role, new_semester, new_acad_year))
 
-            # if update committee, update sem of the member too?
             self.controller.mydb.commit()
 
             messagebox.showinfo("Success", f"{self.selected_member_data[1]} assigned to {new_comm_name} as {new_role} for term {new_semester} Sem {new_acad_year}.")
@@ -321,14 +396,13 @@ class UpdateMemberDetail(tk.Frame):
             cursor.execute("""
                 UPDATE committee_assignment SET role = %s 
                     WHERE student_no = %s AND org_name = %s
-                    AND comm_name = %s
-            """, (new_role,student_no, org_name, current_comm_name,))
+                    AND comm_name = %s and acad_year = %s
+            """, (new_role,student_no, org_name, current_comm_name, acad_year))
             self.controller.mydb.commit()
 
             messagebox.showinfo("Success", f"{self.selected_member_data[1]} updated role in {current_comm_name} to {new_role}.")
         except Exception as e:
             messagebox.showerror("Database Error", str(e))
-
 
     def load_committees(self, org_name):
         try:
