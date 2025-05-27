@@ -18,17 +18,14 @@ class ViewMembersPage(tk.Frame):
         btn_add_fee = tk.Button(self, text="Add Fees for Selected Member", command=self.open_member_fee)
         btn_add_fee.pack(pady=5)
 
-        btn_assign_comm = tk.Button(self, text="Assign Committee and Role to Selecteed Member", command=self.open_assign_comm)
+        btn_assign_comm = tk.Button(self, text="Update Details for Selected Member", command=self.open_assign_comm)
         btn_assign_comm.pack(pady=5)
-
-        btn_add_comm = tk.Button(self, text="Update Selected Member")
-        btn_add_comm.pack(pady=5)
 
         self.label_title = tk.Label(self, text="Members of Organization", font=("Arial", 16))
         self.label_title.pack(pady=5)
 
         # Treeview to show members
-        cols = ("Student No", "First Name", "Last Name", "Academic Year", "Semester", "Status", "Committee", "Role")
+        cols = ("Student No", "First Name", "Last Name", "Year Joined", "Term Year", "Term Sem", "Status", "Committee", "Role")
         self.tree = ttk.Treeview(self, columns=cols, show="headings")
         for col in cols:
             self.tree.heading(col, text=col)
@@ -45,8 +42,9 @@ class ViewMembersPage(tk.Frame):
 
         try:
             cursor = self.controller.mydb.cursor()
+            #fix query here
             cursor.execute("""
-               SELECT s.student_no, s.first_name, s.last_name, m.acad_year, m.semester, m.status, ca.comm_name,ca.role
+                SELECT s.student_no, s.first_name, s.last_name, m.year_joined, m.acad_year, m.semester, m.status, ca.comm_name,ca.role
                 FROM membership m JOIN student s ON m.student_no = s.student_no
                 LEFT JOIN committee_assignment ca ON ca.student_no = m.student_no AND ca.org_name = m.org_name AND ca.acad_year = m.acad_year AND ca.semester = m.semester
                 WHERE m.org_name = %s
@@ -56,6 +54,7 @@ class ViewMembersPage(tk.Frame):
             for row in results:
                 self.tree.insert("", "end", values=row)
         except Exception as e:
+            print(e)
             messagebox.showerror("Database Error", str(e))
 
     def open_add_member_form(self):
@@ -109,61 +108,95 @@ class ViewMembersPage(tk.Frame):
 
         self.controller.show_frame("AddCommitteeRolePage")
 
-
 class AddCommitteeRolePage(tk.Frame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
         self.selected_member_data = None
 
-        details_frame = tk.Frame(self)
-        details_frame.pack(pady=10)
+        # === MAIN CONTAINER FRAME with 2 columns ===
+        content_frame = tk.Frame(self)
+        content_frame.pack(padx=20, pady=20)
 
-       
-        tk.Label(details_frame, text = "Current Member Details:", font=("Arial", 12)).grid(row=0, column=0, sticky="w", pady=5)
+        # === LEFT COLUMN: Member Details ===
+        details_frame = tk.Frame(content_frame)
+        details_frame.grid(row=0, column=0, sticky="n", padx=20)
+
+        tk.Label(details_frame, text="Current Member Details:", font=("Arial", 12, "bold")).grid(row=0, column=0, sticky="w", pady=5)
 
         self.member_lname_label = tk.Label(details_frame, text="", font=("Arial", 12))
         self.member_lname_label.grid(row=1, column=0, sticky="w", pady=5)
 
+        self.member_ay_label = tk.Label(details_frame, text="", font=("Arial", 12))
+        self.member_ay_label.grid(row=2, column=0, sticky="w", pady=5)
+
+        self.member_sem_label = tk.Label(details_frame, text="", font=("Arial", 12))
+        self.member_sem_label.grid(row=3, column=0, sticky="w", pady=5)
+
+        self.member_status_label = tk.Label(details_frame, text="", font=("Arial", 12))
+        self.member_status_label.grid(row=4, column=0, sticky="w", pady=5)
+
         self.member_comm_label = tk.Label(details_frame, text="", font=("Arial", 12))
-        self.member_comm_label.grid(row=2, column=0, sticky="w", pady=5)
+        self.member_comm_label.grid(row=5, column=0, sticky="w", pady=5)
 
         self.member_role_label = tk.Label(details_frame, text="", font=("Arial", 12))
-        self.member_role_label.grid(row=3, column=0, sticky="w", pady=5)
+        self.member_role_label.grid(row=6, column=0, sticky="w", pady=5)
 
-        assign_comm_frame = tk.Frame(self)
-        assign_comm_frame.pack(pady=10)
+        # === RIGHT COLUMN: Update Form ===
+        update_frame = tk.Frame(content_frame)
+        update_frame.grid(row=0, column=1, sticky="n", padx=20)
 
-        # Label (1st row, 1st column)
-        tk.Label(assign_comm_frame, text="Assign Committee :", font=("Arial", 12)).grid(row=0, column=0, sticky="w", pady=5)
+        tk.Label(update_frame, text="Update Details", font=("Arial", 12, "bold")).grid(row=0, column=0, columnspan=2, sticky="w", pady=5)
 
-        # Dropdown (1st row, 2nd column)
+        # Committee Dropdown
+        tk.Label(update_frame, text="Update Committee for New Semester:", font=("Arial", 12)).grid(row=1, column=0, sticky="w", pady=5)
         self.assign_committee_var = tk.StringVar()
-        self.assign_committee_dropdown = ttk.Combobox(
-            assign_comm_frame,
-            textvariable=self.assign_committee_var,
-            state="readonly",
-            width=30
-        )
-        self.assign_committee_dropdown.grid(row=0, column=1, padx=10, pady=5)
+        self.assign_committee_dropdown = ttk.Combobox(update_frame, textvariable=self.assign_committee_var, state="readonly", width=30)
+        self.assign_committee_dropdown.grid(row=1, column=1, padx=10, pady=5)
 
-        # Role label and entry (2nd row)
-        tk.Label(assign_comm_frame, text="Role :", font=("Arial", 12)).grid(row=1, column=0, sticky="w", pady=5)
+        # Semester Dropdown
+        tk.Label(update_frame, text="Update Semester of Committee :", font=("Arial", 12)).grid(row=2, column=0, sticky="w", pady=5)
+        self.update_sem_var = tk.StringVar()
+        self.update_sem_dropdown = ttk.Combobox(update_frame, textvariable=self.update_sem_var, values=["1st", "2nd"], state="readonly", width=30)
+        self.update_sem_var.set("1st")
+        self.update_sem_dropdown.grid(row=2, column=1, padx=10, pady=5)
+
+        tk.Label(update_frame, text="Term A.Y. :", font=("Arial", 12)).grid(row=3, column=0, sticky="w", pady=5)
+        self.entry_acad_year = tk.StringVar()
+        tk.Label(self, text="Update Acad Year for New Committee", font=("Arial", 12)).pack(pady=10)
+        self.entry_acad_year = tk.Entry(update_frame, textvariable=self.entry_acad_year, width=30)
+        self.entry_acad_year.grid(row=3, column=1, padx=10, pady=5)
+
+        # Status Dropdown
+        tk.Label(update_frame, text="Update Status :", font=("Arial", 12)).grid(row=4, column=0, sticky="w", pady=5)
+        self.update_status_var = tk.StringVar()
+        self.update_status_dropdown = ttk.Combobox(update_frame, textvariable=self.update_status_var,
+            values=['Active', 'Inactive', 'Expelled', 'Suspended', 'Alumni'],
+            state="readonly", width=30)
+        self.update_status_var.set('Active')
+        self.update_status_dropdown.grid(row=4, column=1, padx=10, pady=5)
+
+        # Role Entry
+        tk.Label(update_frame, text="Update Role :", font=("Arial", 12)).grid(row=5, column=0, sticky="w", pady=5)
         self.role_var = tk.StringVar()
-        self.entry_role = tk.Entry(assign_comm_frame, textvariable=self.role_var, width=30)
-        self.entry_role.grid(row=1, column=1, padx=10, pady=5)
+        self.entry_role = tk.Entry(update_frame, textvariable=self.role_var, width=30)
+        self.entry_role.grid(row=5, column=1, padx=10, pady=5)
 
-        # Confirm button (2nd row, spans two columns)
-        btn_confirm_assignment = tk.Button(
-            assign_comm_frame,
-            text="Confirm Assignment",
-            command=self.assign_committee_to_member
-        )
+        # === BOTTOM: Buttons ===
+        button_frame = tk.Frame(self)
+        button_frame.pack(pady=10)
 
-        btn_confirm_assignment.grid(row=2, column=0, columnspan=2, pady=10)
+        btn_upd_comm = tk.Button(button_frame, text="Update New Committee", command=self.update_comm)
+        btn_upd_comm.grid(row=0, column=0, padx=10)
 
-        btn_back = tk.Button(self, text="Back to Org", command=lambda: controller.show_frame("ViewMembersPage"))
-        btn_back.pack(pady=5)
+        btn_upd_role = tk.Button(button_frame, text="Update Role Only", command=self.update_role)
+        btn_upd_role.grid(row=0, column=1, padx=10)
+
+        btn_upd_status = tk.Button(button_frame, text="Update Status", command=self.update_status)
+        btn_upd_status.grid(row=0, column=2, padx=10)
+
+        btn_back = tk.Button(button_frame, text="Back to Members Page", command=lambda: controller.show_frame("ViewMembersPage"))
+        btn_back.grid(row=0, column=3, padx=10)
 
     def set_selected_org(self, org_name):
         self.org_name = org_name
@@ -172,41 +205,104 @@ class AddCommitteeRolePage(tk.Frame):
         self.selected_member_data = member_data
         if self.selected_member_data:
             self.member_lname_label.config(text=f"Last Name: {self.selected_member_data[2]}")
-            self.member_comm_label.config(text=f"Committee: {self.selected_member_data[6]}")
-            self.member_role_label.config(text=f"Role: {self.selected_member_data[7]}")
+            self.member_ay_label.config(text=f"Term AY: {self.selected_member_data[4]}")
+            self.member_sem_label.config(text=f"Term Semester: {self.selected_member_data[5]}")
+            self.member_status_label.config(text=f"Current Status: {self.selected_member_data[6]}")
+            self.member_comm_label.config(text=f"Current Committee: {self.selected_member_data[7]}")
+            self.member_role_label.config(text=f"Current Role: {self.selected_member_data[8]}")
         else:
             self.member_lname_label.config(text="Last Name: -")
             self.member_comm_label.config(text="Committee: -")
             self.member_role_label.config(text="Role: -")
-     
-    def assign_committee_to_member(self):
-        if not hasattr(self, 'selected_member_data'):
-            messagebox.showerror("Error", "No member selected.")
+
+    def is_valid_acad_year(self, acad_year_str):
+        match = re.fullmatch(r'(\d{4})-(\d{4})', acad_year_str)
+        if not match:
+            return False
+        start_year, end_year = map(int, match.groups())
+        return end_year == start_year + 1
+    
+    def update_comm(self):
+        student_no = self.selected_member_data[0]
+        old_acad_year = self.selected_member_data[4]
+        current_comm_name =  self.selected_member_data[7]
+        current_role =  self.selected_member_data[8]
+        org_name = self.org_name
+
+        new_comm_name = self.assign_committee_var.get()
+        new_role = self.role_var.get().strip()
+        new_semester = self.update_sem_var.get()
+        new_acad_year = self.entry_acad_year.get()
+
+        if not new_comm_name or not new_role or not new_semester or not new_acad_year:
+            messagebox.showwarning("Incomplete Input", "Please make sure to select a committee, enter a role, and select a semester.")
+            return
+        
+        if new_acad_year == old_acad_year or self.is_valid_acad_year(new_acad_year):
+            messagebox.showwarning("Error", "Cannot update to same acad year or invalid year")
+            return
+        
+        if  current_comm_name == new_comm_name:
+            messagebox.showwarning("Error", "Cannot update to same committee")
+            return
+        
+        if new_role == "" :
+            messagebox.showwarning("Error", "Cannot have empty role")
+            return
+        
+
+
+        # cursor = self.controller.mydb.cursor()
+        # try:
+        #     # Track messages for confirmation
+        #     changes = []
+
+        #     if (catch if no semester or committee)
+        #         cursor.execute("""
+        #             UPDATE committee_assignment
+        #             SET comm_name = %s
+        #             WHERE student_no = %s AND org_name = %s AND acad_year = %s AND semester = %s
+        #         """, (new_comm_name, student_no, org_name, acad_year, new_semester))
+
+        #     self.controller.mydb.commit()
+        #     if changes:
+        #         messagebox.showinfo("Success", "Update Successful:\n" + "\n".join(changes))
+        #     else:
+        #         messagebox.showinfo("No Changes", "Nothing was updated.")
+
+        # except Exception as e:
+        #     self.controller.mydb.rollback()
+        #     messagebox.showerror("Database Error", str(e))
+ 
+    
+    def update_status(self):
+       student_no = self.selected_member_data[0]
+       old_status = self.selected_member_data[6]
+       new_status = self.update_status_var.get()
+       print(new_status)
+       
+       if new_status == old_status:
+        messagebox.showwarning("Error", "Cannot update to same status")
+        return
+
+    def update_role(self):
+        student_no = self.selected_member_data[0]
+        acad_year = self.selected_member_data[4]
+        current_comm_name =  self.selected_member_data[7]
+        current_role =  self.selected_member_data[8]
+        org_name = self.org_name
+
+        new_role = self.role_var.get().strip()
+        print(new_role)
+
+        if new_role == "" :
+            messagebox.showwarning("Error", "Cannot have empty role")
+            return
+    
+        if new_role == current_role:
+            messagebox.showwarning("Error", "Cannot update to same role")
             return
 
-        try:
-            student_no = self.selected_member_data[0]
-            acad_year = self.selected_member_data[3]
-            semester = self.selected_member_data[4]
-            org_name = self.org_name
-            comm_name = self.assign_committee_var.get()
-            role = self.role_var.get().strip()
-
-            if not comm_name or not role:
-                messagebox.showwarning("Missing Fields", "Please select a committee and enter a role.")
-                return
-
-            cursor = self.controller.mydb.cursor()
-            cursor.execute("""
-                INSERT INTO committee_assignment (student_no, org_name, comm_name, role, semester, acad_year)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                ON DUPLICATE KEY UPDATE role = VALUES(role), comm_name = VALUES(comm_name)
-            """, (student_no, org_name, comm_name, role, semester, acad_year))
-            self.controller.mydb.commit()
-
-            messagebox.showinfo("Success", f"{self.selected_member_data[1]} assigned to {comm_name} as {role}.")
-        except Exception as e:
-            messagebox.showerror("Database Error", str(e))
 
     def load_committees(self, org_name):
         try:
@@ -220,7 +316,6 @@ class AddCommitteeRolePage(tk.Frame):
                 self.assign_committee_var.set(committee_names[0])
         except Exception as e:
             messagebox.showerror("Error loading committees", str(e))
-
 
 class AddFeePage(tk.Frame): #AddMembersPage ito haha rename nalang
     def __init__(self, parent, controller):
@@ -385,7 +480,7 @@ class AddMemberPage(tk.Frame):
         self.semester_dropdown.pack(pady=5)
 
         self.entry_acad_year = tk.StringVar()
-        tk.Label(self, text="Acad Year Joined (Batch)", font=("Arial", 12)).pack(pady=10)
+        tk.Label(self, text="Acad Year Joined (Batch) YYYY-YYYY", font=("Arial", 12)).pack(pady=10)
         self.entry_acad_year = tk.Entry(self, textvariable=self.entry_acad_year)
         self.entry_acad_year.pack(pady=5)
 
@@ -402,10 +497,6 @@ class AddMemberPage(tk.Frame):
         self.status_var.set("Active")  #default value
         self.status_dropdown.pack(pady=5)
 
-        # Add button
-        btn_add = tk.Button(self, text="Add Member", command=self.add_member_to_org)
-        btn_add.pack(pady=5)
-
         # Dropdown for Committees
         tk.Label(self, text="Committee : ", font=("Arial", 12)).pack(pady=10)
         self.committee_var = tk.StringVar()
@@ -416,9 +507,26 @@ class AddMemberPage(tk.Frame):
         )
         self.committee_dropdown.pack(pady=5)
 
+          # Role Entry
+        tk.Label(self, text="Role :", font=("Arial", 12)).pack(pady=5)
+        self.role_var = tk.StringVar()
+        self.entry_role = tk.Entry(self, textvariable=self.role_var, width=30)
+        self.entry_role.pack(pady=5)
+
+          # Add button
+        btn_add = tk.Button(self, text="Add Member", command=self.add_member_to_org)
+        btn_add.pack(pady=5)
+
         # Back
         btn_back = tk.Button(self, text="Back", command=lambda: controller.show_frame("ViewMembersPage"))
         btn_back.pack(pady=5)
+    
+    def is_valid_acad_year(self, acad_year_str):
+        match = re.fullmatch(r'(\d{4})-(\d{4})', acad_year_str)
+        if not match:
+            return False
+        start_year, end_year = map(int, match.groups())
+        return end_year == start_year + 1
 
     def load_committees(self, org_name):
         try:
@@ -462,13 +570,19 @@ class AddMemberPage(tk.Frame):
         student_no = self.student_mapping.get(student_label)
         org_name = self.selected_org.get()
         semester = self.semester_var.get()
-        print(org_name)
+        status = self.status_var.get()
+        acad_year = self.entry_acad_year.get().strip()
+        committee = self.committee_var.get()
+        role = self.role_var.get()
+        
+
+        if not self.is_valid_acad_year(acad_year):
+            messagebox.showerror("Invalid Input", "Please enter a valid academic year in the format YYYY-YYYY, where the second year is exactly one more than the first.")
+            return
 
         if not student_no:
             messagebox.showwarning("Selection Error", "Please select a student.")
             return
-        acad_year = "2024-2025"
-        status = "Active"
 
         try:
             cursor = self.controller.mydb.cursor()
@@ -478,6 +592,13 @@ class AddMemberPage(tk.Frame):
             """, (student_no, org_name, semester, acad_year, status))
             self.controller.mydb.commit()
 
+            #error
+            cursor.execute("""
+                INSERT INTO committee_assignment(student_no, org_name, comm_name, role, semester, acad_year)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (student_no, org_name, committee, role, semester, acad_year)
+            )
+
             cursor.execute("""
                 UPDATE student SET is_member = TRUE WHERE student_no = %s
             """, (student_no,))
@@ -486,3 +607,14 @@ class AddMemberPage(tk.Frame):
             messagebox.showinfo("Success", f"{student_label} added to {org_name}")
         except Exception as e:
             messagebox.showerror("Database Error", str(e))
+            print(e)
+
+class OrgMemberReports(tk.Frame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+
+        self.selected_org = tk.StringVar()
+
+    def load_organization(self, org_name):
+        self.selected_org.set(org_name)  # update label and store org name
