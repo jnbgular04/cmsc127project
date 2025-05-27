@@ -45,13 +45,13 @@ class StudentsPage(tk.Frame):
             command=self.load_students
         )
         chk_with_orgs.pack(side=tk.LEFT, padx=5)
-        
+
         tk.Button(btn_frame, text="View Details", command=self.view_student_details).pack(side=tk.LEFT, padx=5)
         tk.Button(btn_frame, text="Refresh", command=self.load_students).pack(side=tk.LEFT, padx=5)
 
         # Optional: Add/Delete/Update buttons for debugging/admin control
         # You may comment these out if Global Admin is not allowed to do this
-        tk.Button(btn_frame, text="Add New Student", command=lambda: controller.show_frame("AddStudentPage")).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="Add New Student", command=self.add_student_popup).pack(side=tk.LEFT, padx=5)
         tk.Button(btn_frame, text="Delete Selected Student", command=self.delete_student).pack(side=tk.LEFT, padx=5)
         tk.Button(btn_frame, text="Update Selected Student", command=self.update_student_popup).pack(side=tk.LEFT, padx=5)
 
@@ -152,6 +152,73 @@ class StudentsPage(tk.Frame):
         # Close button
         tk.Button(popup, text="Close", command=popup.destroy).pack(pady=10)
 
+    def add_student_popup(self):
+        popup = tk.Toplevel(self)
+        popup.title("Add New Student")
+        popup.geometry("400x500")
+        popup.grab_set()
+
+        fields = [
+            "Student No", "First Name", "Middle Name", "Last Name",
+            "Sex (Male/Female)", "Degree Program",
+            "Date Graduated (YYYY-MM-DD or empty)", "Is Member (Yes/No)"
+        ]
+
+        entry_vars = {}
+        for i, field in enumerate(fields):
+            tk.Label(popup, text=field + ":").grid(row=i, column=0, sticky="e", padx=5, pady=5)
+            var = tk.StringVar()
+            entry = tk.Entry(popup, textvariable=var)
+            entry.grid(row=i, column=1, padx=5, pady=5)
+            entry_vars[field] = var
+
+        def save_student():
+            data = {k: v.get().strip() for k, v in entry_vars.items()}
+
+            if not data["Student No"] or not data["First Name"] or not data["Last Name"]:
+                messagebox.showerror("Input Error", "Student No, First Name, and Last Name are required.")
+                return
+
+            if data["Sex (Male/Female)"] not in ("Male", "Female"):
+                messagebox.showerror("Input Error", "Sex must be 'Male' or 'Female'.")
+                return
+
+            is_member_str = data["Is Member (Yes/No)"].lower()
+            if is_member_str == "yes":
+                is_member = True
+            elif is_member_str == "no":
+                is_member = False
+            else:
+                messagebox.showerror("Input Error", "Is Member must be 'Yes' or 'No'.")
+                return
+
+            try:
+                cursor = self.controller.mydb.cursor()
+                cursor.execute("""
+                    INSERT INTO student (
+                        student_no, first_name, middle_name, last_name,
+                        sex, degree_program, date_graduated, is_member
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    data["Student No"],
+                    data["First Name"],
+                    data["Middle Name"] or None,
+                    data["Last Name"],
+                    data["Sex (Male/Female)"],
+                    data["Degree Program"],
+                    data["Date Graduated (YYYY-MM-DD or empty)"] or None,
+                    is_member
+                ))
+                self.controller.mydb.commit()
+                messagebox.showinfo("Success", f"Student '{data['Student No']}' added.")
+                popup.destroy()
+                self.load_students()
+            except mariadb.Error as err:
+                messagebox.showerror("Database Error", str(err))
+
+        tk.Button(popup, text="Save", command=save_student).grid(row=len(fields), column=0, columnspan=2, pady=15)
+ 
 
     def delete_student(self):
         selected = self.tree.selection()
@@ -200,14 +267,20 @@ class StudentsPage(tk.Frame):
             entry.grid(row=i, column=1, padx=5, pady=5)
             entry_vars[field] = var
 
-        # Pre-fill values (original_data = [student_no, first_name, middle_name, last_name, sex, program, grad_date, is_member])
-        entry_vars["First Name"].set(original_data[1])
-        entry_vars["Middle Name"].set(original_data[2])
-        entry_vars["Last Name"].set(original_data[3])
-        entry_vars["Sex (Male/Female)"].set(original_data[4])
-        entry_vars["Degree Program"].set(original_data[5])
-        entry_vars["Date Graduated (YYYY-MM-DD or empty)"].set(original_data[6] or "")
-        entry_vars["Is Member (Yes/No)"].set(original_data[7])
+        # Safely populate only non-None values
+        fields_map = {
+            "First Name": original_data[1],
+            "Middle Name": original_data[2],
+            "Last Name": original_data[3],
+            "Sex (Male/Female)": original_data[4],
+            "Degree Program": original_data[5],
+            "Date Graduated (YYYY-MM-DD or empty)": original_data[6],
+            "Is Member (Yes/No)": original_data[7],
+        }
+
+        for key, value in fields_map.items():
+            if value != "None":
+                entry_vars[key].set(value)
 
         def save_update():
             data = {k: v.get().strip() for k, v in entry_vars.items()}

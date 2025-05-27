@@ -36,7 +36,7 @@ class OrgFinancesPage(tk.Frame):
         tk.Button(filter_frame, text="Clear", command=self.clear_filters).grid(row=0, column=7, padx=5)
 
         # --- Treeview for fees ---
-        columns = ["Ref No", "Student No", "Type", "Balance", "Due Date", "Date Paid"]
+        columns = ["Ref No", "Student No", "Type", "Balance", "Due Date", "Date Paid", "Semester Issued", "AY Issued"]
         self.tree = ttk.Treeview(self, columns=columns, show="headings", height=12)
         for col in columns:
             self.tree.heading(col, text=col)
@@ -82,7 +82,7 @@ class OrgFinancesPage(tk.Frame):
         try:
             cursor = self.controller.mydb.cursor()
             query = """
-                SELECT reference_no, student_no, type, balance, due_date, date_paid
+                SELECT *
                 FROM fee
                 WHERE org_name = %s
             """
@@ -103,8 +103,18 @@ class OrgFinancesPage(tk.Frame):
             total_balance = 0.0
 
             for row in rows:
-                self.tree.insert("", "end", values=row)
-                balance = row[3]
+                values = (
+                    row[1],  # Ref No
+                    row[8],  # Student No
+                    row[5],  # Type
+                    row[2],  # Balance
+                    row[6],  # Due Date
+                    row[7],  # Date Paid
+                    row[3],  # Semester Issued
+                    row[4],  # AY Issued
+                )
+                self.tree.insert("", "end", values=values)
+                balance = row[2]
                 total_balance += float(balance)
                 if balance == 0:
                     total_paid += 1
