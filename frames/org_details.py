@@ -348,6 +348,7 @@ class OrgDetailsPage(tk.Frame):
 
     def view_executive_committee(self):
         org = self.current_org
+        print(org)
         ay = self.selected_ay.get()
         if not ay:
             messagebox.showwarning("Missing AY", "Select an academic year.")
