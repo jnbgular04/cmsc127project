@@ -231,7 +231,6 @@ else:
 cursor.execute("USE project")
 
 
-
 if __name__ == "__main__":
     app = MainApp(mydb)
     app.mainloop()
